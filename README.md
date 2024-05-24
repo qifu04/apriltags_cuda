@@ -39,16 +39,14 @@ A few reasons:
 
     ```
     set(TEAM971_CODE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../971-Robot-Code/third_party/apriltag/)
-
     ```
 
-9. Determine your cuda compute capability of your VPU as follows: `nvidia-smi --query-gpu compute_cap --format=csv` 
+9. Determine your cuda compute capability of your GPU as follows: `nvidia-smi --query-gpu compute_cap --format=csv` 
 
 10. Build the code as follows (use the compute capability determined above, e.g. 7.5 translates to 75 for CMake):
    ```
     cmake -B build -DCMAKE_CUDA_COMPILER=clang++-17 -DCMAKE_CUDA_ARCHITECTURES=75
     cd build && make 
-
    ```
 
 If the build completes successfully you can try to run the code as shown in the next section.  If not, then try debugging what is failing by adding the VERBOSE flag to make as follows `make VERBOSE=1`.
@@ -60,7 +58,6 @@ Plug in a USB web cam into your system.  Then run the code as follows:
 ```
 cd build
 ./opencv_cuda_demo
-
 ```
 
 A window should pop up with the webcam feed displayed.  If you hold an april tag in front of the webcam then it should be detected and the outlines of the tag should be drawn.
