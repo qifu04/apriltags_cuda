@@ -43,6 +43,7 @@ extern "C" {
 #include "tagStandard41h12.h"
 #include "tagStandard52h13.h"
 #include "common/getopt.h"
+#include "common/matd.h"
 }
 
 using namespace std;
@@ -81,8 +82,8 @@ int main(int argc, char *argv[])
         cerr << "Couldn't open video capture device" << endl;
         return -1;
     }
-    cap.set(CAP_PROP_FRAME_WIDTH, 1280);
-    cap.set(CAP_PROP_FRAME_HEIGHT, 720);
+    //cap.set(CAP_PROP_FRAME_WIDTH, 1280);
+    //cap.set(CAP_PROP_FRAME_HEIGHT, 720);
 
     // Initialize tag detector with options
     apriltag_family_t *tf = NULL;
@@ -138,24 +139,61 @@ int main(int argc, char *argv[])
 #endif
     meter.reset();
 
+    frc971::apriltag::CameraMatrix cam;
+    cam.fx = 905.495617;
+    cam.fy = 907.909470;
+    cam.cx = 609.916016;
+    cam.cy = 352.682645;
+
+    frc971::apriltag::DistCoeffs dist;
+    dist.k1 = 0.059238;
+    dist.k2 = -0.075154;
+    dist.p1 = -0.003801;
+    dist.p2 = 0.001113;
+    dist.k3 = 0.0;
+
+    int width = cap.get(CAP_PROP_FRAME_WIDTH);
+    int height = cap.get(CAP_PROP_FRAME_HEIGHT);
+
     Mat frame, gray;
     while (true) {
         errno = 0;
         cap >> frame;
         cvtColor(frame, gray, COLOR_BGR2GRAY);
 
+        
+        //     cv::imwrite("image.jpg", gray); 
+        // }
+
         // Make an image_u8_t header for the Mat data
         //image_u8_t im = {gray.cols, gray.rows, gray.cols, gray.data};
 
         //zarray_t *detections = apriltag_detector_detect(td, &im);
 
-        frc971::apriltag::GpuDetector detector(1280, 720, td, frc971::apriltag::CameraMatrix(), frc971::apriltag::DistCoeffs());
+        frc971::apriltag::GpuDetector detector(width, height, td, cam, dist);
         detector.Detect(gray.data);
         const zarray_t *detections = detector.Detections();
 
         if (errno == EAGAIN) {
             printf("Unable to create the %d threads requested.\n",td->nthreads);
             exit(-1);
+        }
+
+        for (int i = 0; i < zarray_size(detections); i++) {
+            apriltag_detection_t *det;
+            zarray_get(detections, i, &det);
+            std::cout << "tag #: " << det->id << std::endl;
+            std::cout << "hamming: " << det->hamming  << std::endl;
+            std::cout << "margin: " << det->decision_margin << std::endl;
+            std::cout << "center: " << det->c[0] << "," << det->c[1] << std::endl;
+            for (size_t j = 0; j < det->H->ncols; ++j) {
+                std::cout << std::endl;
+                for (size_t k = 0; k < det->H->nrows; ++k) {
+                    std::cout << matd_get(det->H, j, k) << " ";
+                }
+            }
+            std::cout << std::endl;
+
         }
 
         // Draw detection outlines
@@ -190,8 +228,8 @@ int main(int argc, char *argv[])
         //apriltag_detections_destroy(detections);
 
         imshow("Tag Detections", frame);
-        if (waitKey(30) >= 0)
-            break;
+        if (waitKey(30) == 27)
+            cv::imwrite("image.jpg", gray);
     }
 
     apriltag_detector_destroy(td);
