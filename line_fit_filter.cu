@@ -875,7 +875,7 @@ __device__ void FitLine(LineFitMoments moments, double *lineparam01,
   *mse = eig_small;
 }
 
-__host__ __device__ __forceinline__ void FitLine(
+__device__ __forceinline__ void FitLine(
     const LineFitPoint *line_fit_points_device, size_t blob_point_count,
     size_t index0, size_t index1, double *lineparam01, double *lineparam23,
     double *err, double *mse, bool print = false) {
@@ -892,7 +892,7 @@ struct QuadFitStorage {
 
 class QuadFitCalculator {
  public:
-  __host__ __device__ QuadFitCalculator(
+   __device__ QuadFitCalculator(
       const Peak *peaks_device, const PeakExtents *peak_extents,
       const LineFitPoint *line_fit_points_device,
       const cub::KeyValuePair<long, MinMaxExtents> *selected_extents_device,
@@ -919,7 +919,7 @@ class QuadFitCalculator {
     return selected_extent_.count;
   }
 
-  __host__ __device__ __forceinline__ void FitLine(size_t index0, size_t index1,
+   __device__ __forceinline__ void FitLine(size_t index0, size_t index1,
                                           double *lineparam01,
                                           double *lineparam23, double *err,
                                           double *mse,
@@ -939,7 +939,7 @@ class QuadFitCalculator {
         line_fit_points_device_, selected_extent_.count, index0, index1);
   }
 
-  __host__ __device__ void ComputeM0M1Fit() {
+  __device__ void ComputeM0M1Fit() {
     if (extents_.count < 4) {
       return;
     }
@@ -979,7 +979,7 @@ class QuadFitCalculator {
 
   __host__ __device__ int blob_index() const { return extents_.blob_index; }
 
-  __host__ __device__ double FitLines(uint m0, uint m1, uint m2,
+  __device__ double FitLines(uint m0, uint m1, uint m2,
                                       uint m3) const {
     const bool print =
 #ifdef DEBUG_BLOB_NUMBER
