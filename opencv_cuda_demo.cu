@@ -77,13 +77,15 @@ int main(int argc, char *argv[])
     meter.start();
 
     // Initialize camera
-    VideoCapture cap(getopt_get_int(getopt, "camera"));
+    VideoCapture cap(getopt_get_int(getopt, "camera"), CAP_V4L);
     if (!cap.isOpened()) {
         cerr << "Couldn't open video capture device" << endl;
         return -1;
     }
-    //cap.set(CAP_PROP_FRAME_WIDTH, 1280);
-    //cap.set(CAP_PROP_FRAME_HEIGHT, 720);
+    cap.set(CAP_PROP_CONVERT_RGB, false);
+    //cap.set(CAP_PROP_MODE, CV_CAP_MODE_YUYV);
+    cap.set(CAP_PROP_FRAME_WIDTH, 1920);
+    cap.set(CAP_PROP_FRAME_HEIGHT, 1080);
 
     // Initialize tag detector with options
     apriltag_family_t *tf = NULL;
@@ -155,11 +157,16 @@ int main(int argc, char *argv[])
     int width = cap.get(CAP_PROP_FRAME_WIDTH);
     int height = cap.get(CAP_PROP_FRAME_HEIGHT);
 
-    Mat frame, gray;
+    Mat frame, gray, framecopy, tmp;
     while (true) {
         errno = 0;
-        cap >> frame;
-        cvtColor(frame, gray, COLOR_BGR2GRAY);
+        cap >> framecopy;
+        cvtColor(framecopy, frame, COLOR_YUV2BGR_YUYV);//COLOR_YUV2BGR_YUYV 
+        //framecopy = frame.clone();
+        //cvtColor(frame, tmp, COLOR_BGR2YUV);
+        //cvtColor(frame, gray, COLOR_BGR2YUV);;
+       // cvtColor(tmp, frame, COLOR_BGR2YUV_Y422);
+        //std::cout << "Frame type: " << frame.type() << std::endl;
 
         
         //     cv::imwrite("image.jpg", gray); 
@@ -171,7 +178,7 @@ int main(int argc, char *argv[])
         //zarray_t *detections = apriltag_detector_detect(td, &im);
 
         frc971::apriltag::GpuDetector detector(width, height, td, cam, dist);
-        detector.Detect(gray.data);
+        detector.Detect(framecopy.data);
         const zarray_t *detections = detector.Detections();
 
         if (errno == EAGAIN) {
@@ -228,8 +235,11 @@ int main(int argc, char *argv[])
         //apriltag_detections_destroy(detections);
 
         imshow("Tag Detections", frame);
-        if (waitKey(30) == 27)
-            cv::imwrite("image.jpg", gray);
+        if (waitKey(30) == 27) {
+            cv::imwrite("grayimage.jpg", gray);
+            cv::imwrite("colorimage.jpg", framecopy);
+        }
+
     }
 
     apriltag_detector_destroy(td);
