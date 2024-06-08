@@ -7,11 +7,12 @@ project(ApriltagCuda LANGUAGES CUDA CXX)  # Set project name and specify the lan
 # Look for CUDA
 find_package(CUDA REQUIRED)
 
-# Look for glog
+# Look for glog and gtest
 find_package(glog REQUIRED)
+find_package(GTest REQUIRED)
 
 # Look for opencv
-find_package(OpenCV REQUIRED CONFIG)
+find_package(OpenCV 4.9.0 REQUIRED CONFIG)
 
  CPMAddPackage(
      NAME CCCL
@@ -58,11 +59,13 @@ target_link_libraries(opencv_cuda_demo
     apriltag_cuda 
     apriltag 
     ${OpenCV_LIBRARIES}
-    glog::glog)
+    glog::glog
+    GTest::GTest)
 
 add_executable(test_cuda test_cuda.cu)
 target_link_libraries(test_cuda
     apriltag_cuda 
     apriltag 
     ${OpenCV_LIBRARIES}
-    glog::glog)
+    glog::glog
+    GTest::GTest)

@@ -29,6 +29,7 @@ either expressed or implied, of the Regents of The University of Michigan.
 #include <iomanip>
 
 #include "opencv2/opencv.hpp"
+#include <gflags/gflags.h>
 
 #include "apriltag_gpu.h"
 
@@ -49,27 +50,18 @@ extern "C" {
 using namespace std;
 using namespace cv;
 
+DEFINE_int32(camera, 0, "Camera ID");
+DEFINE_bool(debug, false, "Enable debugging output (slow)");
+DEFINE_bool(quiet, false, "Reduce output");
+DEFINE_string(family, "tag36h11", "AprilTag family to use");
+DEFINE_int32(threads, 1, "Use this many CPU threads");
+DEFINE_double(decimate, 2.0, "Decimate input image by this factor");
+DEFINE_double(blur, 0.0, "Apply low-pass blur to input");
+DEFINE_bool(refine_edges, true, "Spend more time trying to align edges of tags");
 
 int main(int argc, char *argv[])
 {
-    getopt_t *getopt = getopt_create();
-
-    getopt_add_bool(getopt, 'h', "help", 0, "Show this help");
-    getopt_add_int(getopt, 'c', "camera", "0", "camera ID");
-    getopt_add_bool(getopt, 'd', "debug", 0, "Enable debugging output (slow)");
-    getopt_add_bool(getopt, 'q', "quiet", 0, "Reduce output");
-    getopt_add_string(getopt, 'f', "family", "tag36h11", "Tag family to use");
-    getopt_add_int(getopt, 't', "threads", "1", "Use this many CPU threads");
-    getopt_add_double(getopt, 'x', "decimate", "2.0", "Decimate input image by this factor");
-    getopt_add_double(getopt, 'b', "blur", "0.0", "Apply low-pass blur to input");
-    getopt_add_bool(getopt, '0', "refine-edges", 1, "Spend more time trying to align edges of tags");
-
-    if (!getopt_parse(getopt, argc, argv, 1) ||
-            getopt_get_bool(getopt, "help")) {
-        printf("Usage: %s [options]\n", argv[0]);
-        getopt_do_usage(getopt);
-        exit(0);
-    }
+    gflags::ParseCommandLineFlags(&argc, &argv, true);
 
     cout << "Enabling video capture" << endl;
 
@@ -77,7 +69,7 @@ int main(int argc, char *argv[])
     meter.start();
 
     // Initialize camera
-    VideoCapture cap(getopt_get_int(getopt, "camera"), CAP_V4L);
+    VideoCapture cap(FLAGS_camera, CAP_V4L);
     if (!cap.isOpened()) {
         cerr << "Couldn't open video capture device" << endl;
         return -1;
@@ -89,7 +81,7 @@ int main(int argc, char *argv[])
 
     // Initialize tag detector with options
     apriltag_family_t *tf = NULL;
-    const char *famname = getopt_get_string(getopt, "family");
+    const char *famname = FLAGS_family.c_str();
     if (!strcmp(famname, "tag36h11")) {
         tf = tag36h11_create();
     } else if (!strcmp(famname, "tag25h9")) {
@@ -111,7 +103,6 @@ int main(int argc, char *argv[])
         exit(-1);
     }
 
-
     apriltag_detector_t *td = apriltag_detector_create();
     apriltag_detector_add_family(td, tf);
 
@@ -120,25 +111,21 @@ int main(int argc, char *argv[])
         exit(-1);
     }
 
-    td->quad_decimate = getopt_get_double(getopt, "decimate");
-    td->quad_sigma = getopt_get_double(getopt, "blur");
-    td->nthreads = getopt_get_int(getopt, "threads");
-    td->debug = getopt_get_bool(getopt, "debug");
-    td->refine_edges = getopt_get_bool(getopt, "refine-edges");
-    td->wp = workerpool_create(td->nthreads);
+    td->quad_decimate = FLAGS_decimate;
+    td->quad_sigma = FLAGS_blur;
+    td->nthreads = FLAGS_threads;
+    td->debug = FLAGS_debug;
+    td->refine_edges = FLAGS_refine_edges;
+    td->wp = workerpool_create(FLAGS_threads);
 
     meter.stop();
     cout << "Detector " << famname << " initialized in "
         << std::fixed << std::setprecision(3) << meter.getTimeSec() << " seconds" << endl;
-#if CV_MAJOR_VERSION > 3
+
     cout << "  " << cap.get(CAP_PROP_FRAME_WIDTH ) << "x" <<
                     cap.get(CAP_PROP_FRAME_HEIGHT ) << " @" <<
                     cap.get(CAP_PROP_FPS) << "FPS" << endl;
-#else
-    cout << "  " << cap.get(CV_CAP_PROP_FRAME_WIDTH ) << "x" <<
-                    cap.get(CV_CAP_PROP_FRAME_HEIGHT ) << " @" <<
-                    cap.get(CV_CAP_PROP_FPS) << "FPS" << endl;
-#endif
+
     meter.reset();
 
     frc971::apriltag::CameraMatrix cam;
@@ -262,8 +249,6 @@ int main(int argc, char *argv[])
         tagCustom48h12_destroy(tf);
     }
 
-
-    getopt_destroy(getopt);
-
+    gflags::ShutDownCommandLineFlags();
     return 0;
 }
