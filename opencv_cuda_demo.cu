@@ -1,30 +1,3 @@
-/* Copyright (C) 2013-2016, The Regents of The University of Michigan.
-All rights reserved.
-This software was developed in the APRIL Robotics Lab under the
-direction of Edwin Olson, ebolson@umich.edu. This software may be
-available under alternative licensing terms; contact the address above.
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-The views and conclusions contained in the software and documentation are those
-of the authors and should not be interpreted as representing official policies,
-either expressed or implied, of the Regents of The University of Michigan.
-*/
-
 #include <gflags/gflags.h>
 
 #include <iomanip>
@@ -59,49 +32,106 @@ DEFINE_double(decimate, 2.0, "Decimate input image by this factor");
 DEFINE_double(blur, 0.0, "Apply low-pass blur to input");
 DEFINE_bool(refine_edges, true,
             "Spend more time trying to align edges of tags");
+DEFINE_bool(verbose, false, "Print out april tag detection results");
+DEFINE_bool(cpuonly, false, "Use the CPU instead of CUDA");
 
-int main(int argc, char *argv[]) {
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
-
-  cout << "Enabling video capture" << endl;
-
-  TickMeter meter;
-  meter.start();
-
-  // Initialize camera
-  VideoCapture cap(FLAGS_camera, CAP_V4L);
-  if (!cap.isOpened()) {
-    cerr << "Couldn't open video capture device" << endl;
-    return -1;
-  }
-  cap.set(CAP_PROP_CONVERT_RGB, false);
-  // cap.set(CAP_PROP_MODE, CV_CAP_MODE_YUYV);
-  cap.set(CAP_PROP_FRAME_WIDTH, 1920);
-  cap.set(CAP_PROP_FRAME_HEIGHT, 1080);
-
-  // Initialize tag detector with options
-  apriltag_family_t *tf = NULL;
-  const char *famname = FLAGS_family.c_str();
+void setup_tag_family(apriltag_family_t **tf, const char *famname) {
   if (!strcmp(famname, "tag36h11")) {
-    tf = tag36h11_create();
+    *tf = tag36h11_create();
   } else if (!strcmp(famname, "tag25h9")) {
-    tf = tag25h9_create();
+    *tf = tag25h9_create();
   } else if (!strcmp(famname, "tag16h5")) {
-    tf = tag16h5_create();
+    *tf = tag16h5_create();
   } else if (!strcmp(famname, "tagCircle21h7")) {
-    tf = tagCircle21h7_create();
+    *tf = tagCircle21h7_create();
   } else if (!strcmp(famname, "tagCircle49h12")) {
-    tf = tagCircle49h12_create();
+    *tf = tagCircle49h12_create();
   } else if (!strcmp(famname, "tagStandard41h12")) {
-    tf = tagStandard41h12_create();
+    *tf = tagStandard41h12_create();
   } else if (!strcmp(famname, "tagStandard52h13")) {
-    tf = tagStandard52h13_create();
+    *tf = tagStandard52h13_create();
   } else if (!strcmp(famname, "tagCustom48h12")) {
-    tf = tagCustom48h12_create();
+    *tf = tagCustom48h12_create();
   } else {
     printf("Unrecognized tag family name. Use e.g. \"tag36h11\".\n");
     exit(-1);
   }
+}
+
+void teardown_tag_family(apriltag_family_t **tf, const char *famname) {
+  if (!strcmp(famname, "tag36h11")) {
+    tag36h11_destroy(*tf);
+  } else if (!strcmp(famname, "tag25h9")) {
+    tag25h9_destroy(*tf);
+  } else if (!strcmp(famname, "tag16h5")) {
+    tag16h5_destroy(*tf);
+  } else if (!strcmp(famname, "tagCircle21h7")) {
+    tagCircle21h7_destroy(*tf);
+  } else if (!strcmp(famname, "tagCircle49h12")) {
+    tagCircle49h12_destroy(*tf);
+  } else if (!strcmp(famname, "tagStandard41h12")) {
+    tagStandard41h12_destroy(*tf);
+  } else if (!strcmp(famname, "tagStandard52h13")) {
+    tagStandard52h13_destroy(*tf);
+  } else if (!strcmp(famname, "tagCustom48h12")) {
+    tagCustom48h12_destroy(*tf);
+  }
+}
+
+void draw_detection_outlines(Mat &im, zarray_t *detections) {
+  for (int i = 0; i < zarray_size(detections); i++) {
+    apriltag_detection_t *det;
+    zarray_get(detections, i, &det);
+    line(im, Point(det->p[0][0], det->p[0][1]),
+         Point(det->p[1][0], det->p[1][1]), Scalar(0, 0xff, 0), 2);
+    line(im, Point(det->p[0][0], det->p[0][1]),
+         Point(det->p[3][0], det->p[3][1]), Scalar(0, 0, 0xff), 2);
+    line(im, Point(det->p[1][0], det->p[1][1]),
+         Point(det->p[2][0], det->p[2][1]), Scalar(0xff, 0, 0), 2);
+    line(im, Point(det->p[2][0], det->p[2][1]),
+         Point(det->p[3][0], det->p[3][1]), Scalar(0xff, 0, 0), 2);
+
+    stringstream ss;
+    ss << det->id;
+    String text = ss.str();
+    int fontface = FONT_HERSHEY_SCRIPT_SIMPLEX;
+    double fontscale = 1.0;
+    int baseline;
+    Size textsize = getTextSize(text, fontface, fontscale, 2, &baseline);
+    putText(
+        im, text,
+        Point(det->c[0] - textsize.width / 2, det->c[1] + textsize.height / 2),
+        fontface, fontscale, Scalar(0xff, 0x99, 0), 2);
+  }
+}
+
+void print_detections(zarray_t *detections) {
+  for (int i = 0; i < zarray_size(detections); i++) {
+    apriltag_detection_t *det;
+    zarray_get(detections, i, &det);
+    std::cout << "tag #: " << det->id << std::endl;
+    std::cout << "hamming: " << det->hamming << std::endl;
+    std::cout << "margin: " << det->decision_margin << std::endl;
+    std::cout << "center: " << det->c[0] << "," << det->c[1] << std::endl;
+    for (size_t j = 0; j < det->H->ncols; ++j) {
+      std::cout << std::endl;
+      for (size_t k = 0; k < det->H->nrows; ++k) {
+        std::cout << matd_get(det->H, j, k) << " ";
+      }
+    }
+    std::cout << std::endl;
+  }
+}
+
+int main(int argc, char *argv[]) {
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
+
+  TickMeter meter;
+  meter.start();
+
+  // Initialize tag detector with options
+  apriltag_family_t *tf = NULL;
+  setup_tag_family(&tf, FLAGS_family.c_str());
 
   apriltag_detector_t *td = apriltag_detector_create();
   apriltag_detector_add_family(td, tf);
@@ -122,13 +152,28 @@ int main(int argc, char *argv[]) {
   td->wp = workerpool_create(FLAGS_threads);
 
   meter.stop();
-  cout << "Detector " << famname << " initialized in " << std::fixed
+  cout << "Detector " << FLAGS_family << " initialized in " << std::fixed
        << std::setprecision(3) << meter.getTimeSec() << " seconds" << endl;
+
+  // Initialize camera
+  cout << "Enabling video capture" << endl;
+  VideoCapture cap(FLAGS_camera, CAP_V4L);
+  if (!cap.isOpened()) {
+    cerr << "Couldn't open video capture device" << endl;
+    return -1;
+  }
+  cap.set(CAP_PROP_CONVERT_RGB, false);
+  // cap.set(CAP_PROP_MODE, CV_CAP_MODE_YUYV);
+  cap.set(CAP_PROP_FRAME_WIDTH, 1920);
+  cap.set(CAP_PROP_FRAME_HEIGHT, 1080);
 
   cout << "  " << cap.get(CAP_PROP_FRAME_WIDTH) << "x"
        << cap.get(CAP_PROP_FRAME_HEIGHT) << " @" << cap.get(CAP_PROP_FPS)
        << "FPS" << endl;
 
+  if (FLAGS_cpuonly) {
+    cout << "Running in CPU only mode" << endl;
+  }
   meter.reset();
 
   frc971::apriltag::CameraMatrix cam;
@@ -147,103 +192,45 @@ int main(int argc, char *argv[]) {
   int width = cap.get(CAP_PROP_FRAME_WIDTH);
   int height = cap.get(CAP_PROP_FRAME_HEIGHT);
 
-  Mat frame, gray, framecopy, tmp;
+  Mat bgr_img, bgr_img_copy, yuyv_img, gray;
   while (true) {
     errno = 0;
-    cap >> framecopy;
-    cvtColor(framecopy, frame, COLOR_YUV2BGR_YUYV);  // COLOR_YUV2BGR_YUYV
-    // framecopy = frame.clone();
-    // cvtColor(frame, tmp, COLOR_BGR2YUV);
-    // cvtColor(frame, gray, COLOR_BGR2YUV);;
-    // cvtColor(tmp, frame, COLOR_BGR2YUV_Y422);
-    // std::cout << "Frame type: " << frame.type() << std::endl;
+    cap >> yuyv_img;
+    cvtColor(yuyv_img, bgr_img, COLOR_YUV2BGR_YUYV);
+    bgr_img_copy = bgr_img.clone();
 
-    //     cv::imwrite("image.jpg", gray);
-    // }
-
-    // Make an image_u8_t header for the Mat data
-    // image_u8_t im = {gray.cols, gray.rows, gray.cols, gray.data};
-
-    // zarray_t *detections = apriltag_detector_detect(td, &im);
-
-    frc971::apriltag::GpuDetector detector(width, height, td, cam, dist);
-    detector.Detect(framecopy.data);
-    const zarray_t *detections = detector.Detections();
+    if (FLAGS_cpuonly) {
+      cvtColor(bgr_img, gray, COLOR_BGR2GRAY);
+      image_u8_t im = {gray.cols, gray.rows, gray.cols, gray.data};
+      zarray_t *detections = apriltag_detector_detect(td, &im);
+      if (FLAGS_verbose) {
+        print_detections(detections);
+      }
+      draw_detection_outlines(bgr_img, detections);
+      apriltag_detections_destroy(detections);
+    } else {
+      frc971::apriltag::GpuDetector detector(width, height, td, cam, dist);
+      detector.Detect(yuyv_img.data);
+      const zarray_t *detections = detector.Detections();
+      if (FLAGS_verbose) {
+        print_detections(const_cast<zarray_t *>(detections));
+      }
+      draw_detection_outlines(bgr_img, const_cast<zarray_t *>(detections));
+    }
 
     if (errno == EAGAIN) {
       printf("Unable to create the %d threads requested.\n", td->nthreads);
       exit(-1);
     }
 
-    for (int i = 0; i < zarray_size(detections); i++) {
-      apriltag_detection_t *det;
-      zarray_get(detections, i, &det);
-      std::cout << "tag #: " << det->id << std::endl;
-      std::cout << "hamming: " << det->hamming << std::endl;
-      std::cout << "margin: " << det->decision_margin << std::endl;
-      std::cout << "center: " << det->c[0] << "," << det->c[1] << std::endl;
-      for (size_t j = 0; j < det->H->ncols; ++j) {
-        std::cout << std::endl;
-        for (size_t k = 0; k < det->H->nrows; ++k) {
-          std::cout << matd_get(det->H, j, k) << " ";
-        }
-      }
-      std::cout << std::endl;
-    }
-
-    // Draw detection outlines
-    for (int i = 0; i < zarray_size(detections); i++) {
-      apriltag_detection_t *det;
-      zarray_get(detections, i, &det);
-      line(frame, Point(det->p[0][0], det->p[0][1]),
-           Point(det->p[1][0], det->p[1][1]), Scalar(0, 0xff, 0), 2);
-      line(frame, Point(det->p[0][0], det->p[0][1]),
-           Point(det->p[3][0], det->p[3][1]), Scalar(0, 0, 0xff), 2);
-      line(frame, Point(det->p[1][0], det->p[1][1]),
-           Point(det->p[2][0], det->p[2][1]), Scalar(0xff, 0, 0), 2);
-      line(frame, Point(det->p[2][0], det->p[2][1]),
-           Point(det->p[3][0], det->p[3][1]), Scalar(0xff, 0, 0), 2);
-
-      stringstream ss;
-      ss << det->id;
-      String text = ss.str();
-      int fontface = FONT_HERSHEY_SCRIPT_SIMPLEX;
-      double fontscale = 1.0;
-      int baseline;
-      Size textsize = getTextSize(text, fontface, fontscale, 2, &baseline);
-      putText(frame, text,
-              Point(det->c[0] - textsize.width / 2,
-                    det->c[1] + textsize.height / 2),
-              fontface, fontscale, Scalar(0xff, 0x99, 0), 2);
-    }
-    // apriltag_detections_destroy(detections);
-
-    imshow("Tag Detections", frame);
+    imshow("Tag Detections", bgr_img);
     if (waitKey(30) == 27) {
-      cv::imwrite("grayimage.jpg", gray);
-      cv::imwrite("colorimage.jpg", framecopy);
+      cv::imwrite("colorimage.jpg", bgr_img_copy);
+      cv::imwrite("colorimagewdetections.jpg", bgr_img);
     }
   }
 
-  apriltag_detector_destroy(td);
-
-  if (!strcmp(famname, "tag36h11")) {
-    tag36h11_destroy(tf);
-  } else if (!strcmp(famname, "tag25h9")) {
-    tag25h9_destroy(tf);
-  } else if (!strcmp(famname, "tag16h5")) {
-    tag16h5_destroy(tf);
-  } else if (!strcmp(famname, "tagCircle21h7")) {
-    tagCircle21h7_destroy(tf);
-  } else if (!strcmp(famname, "tagCircle49h12")) {
-    tagCircle49h12_destroy(tf);
-  } else if (!strcmp(famname, "tagStandard41h12")) {
-    tagStandard41h12_destroy(tf);
-  } else if (!strcmp(famname, "tagStandard52h13")) {
-    tagStandard52h13_destroy(tf);
-  } else if (!strcmp(famname, "tagCustom48h12")) {
-    tagCustom48h12_destroy(tf);
-  }
+  teardown_tag_family(&tf, FLAGS_family.c_str());
 
   gflags::ShutDownCommandLineFlags();
   return 0;
