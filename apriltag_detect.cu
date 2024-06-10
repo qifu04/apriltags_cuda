@@ -12,9 +12,8 @@
 #include <cub/iterator/transform_input_iterator.cuh>
 #include <vector>
 
-#include "glog/logging.h"
-
 #include "apriltag_gpu.h"
+#include "glog/logging.h"
 #include "labeling_allegretti_2019_BKE.h"
 #include "threshold.h"
 

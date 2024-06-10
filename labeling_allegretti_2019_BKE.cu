@@ -17,12 +17,10 @@
 //    filtering.
 //
 
-#include "labeling_allegretti_2019_BKE.h"
-
-#include "glog/logging.h"
-
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
+#include "glog/logging.h"
+#include "labeling_allegretti_2019_BKE.h"
 
 #define BLOCK_ROWS 16
 #define BLOCK_COLS 16

@@ -4,10 +4,9 @@
 #include <chrono>
 #include <span>
 
-#include "glog/logging.h"
-
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
+#include "glog/logging.h"
 
 // CHECKs that a cuda method returned success.
 // TODO(austin): This will not handle if and else statements quite right, fix if

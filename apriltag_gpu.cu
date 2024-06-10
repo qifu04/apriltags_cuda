@@ -1,5 +1,3 @@
-#include "apriltag_gpu.h"
-
 #include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/transform_iterator.h>
 
@@ -14,8 +12,9 @@
 #include <cub/iterator/transform_input_iterator.cuh>
 #include <vector>
 
-#include "glog/logging.h"
+#include "apriltag_gpu.h"
 #include "g2d.h"
+#include "glog/logging.h"
 
 //#include "aos/time/time.h"
 #include "labeling_allegretti_2019_BKE.h"
@@ -1095,7 +1094,8 @@ void GpuDetector::Detect(const uint8_t *image) {
 
   DecodeTags();
 
-  //const aos::monotonic_clock::time_point end_time = aos::monotonic_clock::now();
+  // const aos::monotonic_clock::time_point end_time =
+  // aos::monotonic_clock::now();
 
   // TODO(austin): Bring it back to the CPU and see how good we did.
 
@@ -1136,11 +1136,13 @@ void GpuDetector::Detect(const uint8_t *image) {
             << "ms";
     previous_event = &std::get<1>(name_event);
   }
-  // VLOG(1) << "  FitQuads " << float_milli(end_time - before_fit_quads).count()
+  // VLOG(1) << "  FitQuads " << float_milli(end_time -
+  // before_fit_quads).count()
   //         << "ms on host";
 
   // VLOG(1) << "Overall "
-  //         << float_milli(previous_event->ElapsedTime(start_)).count() << "ms, "
+  //         << float_milli(previous_event->ElapsedTime(start_)).count() << "ms,
+  //         "
   //         << float_milli(end_time - start_time).count() << "ms on host";
   // Average.  Skip the first one as the kernel is warming up and is slower.
   if (!first_) {
