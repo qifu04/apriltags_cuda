@@ -71,6 +71,7 @@ target_link_libraries(test_cuda
     GTest::GTest)
 
 add_custom_target(format_all
-    COMMAND find ${CMAKE_SOURCE_DIR} -name "*.cu" -o -name "*.h" | xargs clang-format -i -style=Google
+    COMMAND clang-format -i -style=Google ${CMAKE_CURRENT_SOURCE_DIR}/*.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/*.h
     COMMENT "Running clang-format on all source files"
 )
