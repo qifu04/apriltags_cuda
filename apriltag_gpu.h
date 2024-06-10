@@ -4,10 +4,9 @@
 #include <cub/iterator/transform_input_iterator.cuh>
 
 #include "apriltag.h"
-
+#include "cuda.h"
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-#include "cuda.h"
 #include "gpu_image.h"
 #include "line_fit_filter.h"
 #include "points.h"

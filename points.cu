@@ -1,7 +1,7 @@
-#include "points.h"
-
 #include <iomanip>
 #include <ostream>
+
+#include "points.h"
 
 namespace frc971::apriltag {
 
