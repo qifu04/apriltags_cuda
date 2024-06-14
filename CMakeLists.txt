@@ -62,7 +62,7 @@ target_link_libraries(opencv_cuda_demo
     glog::glog
     GTest::GTest)
 
-add_executable(test_cuda test_cuda.cu)
+add_executable(visualize visualize.cu)
 target_link_libraries(test_cuda
     apriltag_cuda 
     apriltag 
@@ -71,7 +71,6 @@ target_link_libraries(test_cuda
     GTest::GTest)
 
 add_custom_target(format_all
-    COMMAND clang-format -i -style=Google ${CMAKE_CURRENT_SOURCE_DIR}/*.cu
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.h
+    COMMAND clang-format -i -style=Google ${CMAKE_CURRENT_SOURCE_DIR}/*.cu ${CMAKE_CURRENT_SOURCE_DIR}/*.h
     COMMENT "Running clang-format on all source files"
 )
