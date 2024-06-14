@@ -144,6 +144,7 @@ int main(int argc, char *argv[]) {
   }
 
   teardown_tag_family(&tf, FLAGS_family.c_str());
+  apriltag_detector_destroy(td);
 
   gflags::ShutDownCommandLineFlags();
   return 0;

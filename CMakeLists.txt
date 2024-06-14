@@ -71,6 +71,15 @@ target_link_libraries(visualize
     glog::glog
     GTest::GTest)
 
+# Add the test executable
+add_executable(gpu_detector_test gpu_detector_test.cu)
+target_link_libraries(gpu_detector_test
+    apriltag_cuda
+    apriltag
+    ${OpenCV_LIBRARIES}
+    glog::glog
+    GTest::GTest)
+
 add_custom_target(format_all
     COMMAND clang-format -i -style=Google ${CMAKE_CURRENT_SOURCE_DIR}/*.cu ${CMAKE_CURRENT_SOURCE_DIR}/*.h
     COMMENT "Running clang-format on all source files"
