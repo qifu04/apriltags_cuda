@@ -3,21 +3,8 @@
 #include <iostream>
 
 #include "apriltag_gpu.h"
+#include "apriltag_utils.h"
 #include "opencv2/opencv.hpp"
-
-extern "C" {
-#include "apriltag.h"
-#include "common/getopt.h"
-#include "common/matd.h"
-#include "tag16h5.h"
-#include "tag25h9.h"
-#include "tag36h11.h"
-#include "tagCircle21h7.h"
-#include "tagCircle49h12.h"
-#include "tagCustom48h12.h"
-#include "tagStandard41h12.h"
-#include "tagStandard52h13.h"
-}
 
 using namespace std;
 using namespace cv;
@@ -27,28 +14,9 @@ int main(int argc, char *argv[]) {
   meter.start();
 
   // Initialize tag detector with options
-  apriltag_family_t *tf = NULL;
   const char *famname = "tag36h11";
-  if (!strcmp(famname, "tag36h11")) {
-    tf = tag36h11_create();
-  } else if (!strcmp(famname, "tag25h9")) {
-    tf = tag25h9_create();
-  } else if (!strcmp(famname, "tag16h5")) {
-    tf = tag16h5_create();
-  } else if (!strcmp(famname, "tagCircle21h7")) {
-    tf = tagCircle21h7_create();
-  } else if (!strcmp(famname, "tagCircle49h12")) {
-    tf = tagCircle49h12_create();
-  } else if (!strcmp(famname, "tagStandard41h12")) {
-    tf = tagStandard41h12_create();
-  } else if (!strcmp(famname, "tagStandard52h13")) {
-    tf = tagStandard52h13_create();
-  } else if (!strcmp(famname, "tagCustom48h12")) {
-    tf = tagCustom48h12_create();
-  } else {
-    printf("Unrecognized tag family name. Use e.g. \"tag36h11\".\n");
-    exit(-1);
-  }
+  apriltag_family_t *tf = NULL;
+  setup_tag_family(&tf, famname);
 
   apriltag_detector_t *td = apriltag_detector_create();
   apriltag_detector_add_family(td, tf);
@@ -93,11 +61,6 @@ int main(int argc, char *argv[]) {
   int width = bgr_img.cols;
   int height = bgr_img.rows;
 
-  // Make an image_u8_t header for the Mat data
-  // image_u8_t im = {gray.cols, gray.rows, gray.cols, gray.data};
-
-  // zarray_t *detections = apriltag_detector_detect(td, &im);
-
   frc971::apriltag::GpuDetector detector(width, height, td, cam, dist);
   detector.Detect(yuyv_img.data);
   const zarray_t *detections = detector.Detections();
@@ -107,48 +70,8 @@ int main(int argc, char *argv[]) {
     exit(-1);
   }
 
-  for (int i = 0; i < zarray_size(detections); i++) {
-    apriltag_detection_t *det;
-    zarray_get(detections, i, &det);
-    std::cout << "tag #: " << det->id << std::endl;
-    std::cout << "hamming: " << det->hamming << std::endl;
-    std::cout << "margin: " << det->decision_margin << std::endl;
-    std::cout << "center: " << det->c[0] << "," << det->c[1] << std::endl;
-    for (size_t j = 0; j < det->H->ncols; ++j) {
-      std::cout << std::endl;
-      for (size_t k = 0; k < det->H->nrows; ++k) {
-        std::cout << matd_get(det->H, j, k) << " ";
-      }
-    }
-    std::cout << std::endl;
-  }
-
-  // Draw detection outlines
-  for (int i = 0; i < zarray_size(detections); i++) {
-    apriltag_detection_t *det;
-    zarray_get(detections, i, &det);
-    line(bgr_img, Point(det->p[0][0], det->p[0][1]),
-         Point(det->p[1][0], det->p[1][1]), Scalar(0, 0xff, 0), 2);
-    line(bgr_img, Point(det->p[0][0], det->p[0][1]),
-         Point(det->p[3][0], det->p[3][1]), Scalar(0, 0, 0xff), 2);
-    line(bgr_img, Point(det->p[1][0], det->p[1][1]),
-         Point(det->p[2][0], det->p[2][1]), Scalar(0xff, 0, 0), 2);
-    line(bgr_img, Point(det->p[2][0], det->p[2][1]),
-         Point(det->p[3][0], det->p[3][1]), Scalar(0xff, 0, 0), 2);
-
-    stringstream ss;
-    ss << det->id;
-    String text = ss.str();
-    int fontface = FONT_HERSHEY_SCRIPT_SIMPLEX;
-    double fontscale = 1.0;
-    int baseline;
-    Size textsize = getTextSize(text, fontface, fontscale, 2, &baseline);
-    putText(
-        bgr_img, text,
-        Point(det->c[0] - textsize.width / 2, det->c[1] + textsize.height / 2),
-        fontface, fontscale, Scalar(0xff, 0x99, 0), 2);
-  }
-  // apriltag_detections_destroy(detections);
+  print_detections(const_cast<zarray_t *>(detections));
+  draw_detection_outlines(bgr_img, const_cast<zarray_t *>(detections));
 
   imshow("Tag Detections", bgr_img);
   waitKey(0);
@@ -168,25 +91,7 @@ int main(int argc, char *argv[]) {
   imshow("thresholded_cuda", thresholded_cuda);
   waitKey(0);
 
+  teardown_tag_family(&tf, famname);
   apriltag_detector_destroy(td);
-
-  if (!strcmp(famname, "tag36h11")) {
-    tag36h11_destroy(tf);
-  } else if (!strcmp(famname, "tag25h9")) {
-    tag25h9_destroy(tf);
-  } else if (!strcmp(famname, "tag16h5")) {
-    tag16h5_destroy(tf);
-  } else if (!strcmp(famname, "tagCircle21h7")) {
-    tagCircle21h7_destroy(tf);
-  } else if (!strcmp(famname, "tagCircle49h12")) {
-    tagCircle49h12_destroy(tf);
-  } else if (!strcmp(famname, "tagStandard41h12")) {
-    tagStandard41h12_destroy(tf);
-  } else if (!strcmp(famname, "tagStandard52h13")) {
-    tagStandard52h13_destroy(tf);
-  } else if (!strcmp(famname, "tagCustom48h12")) {
-    tagCustom48h12_destroy(tf);
-  }
-
   return 0;
 }
