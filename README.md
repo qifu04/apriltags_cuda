@@ -18,7 +18,7 @@ A few reasons:
 
 4. Install the cuda toolkit and appropriate nvidia driver on your system.  Recommend version 11.8 or later of the cuda toolkit.  Complete instructions for cuda toolkit install for Ubuntu are here: <https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#prepare-ubuntu>
 
-5. Install clang from the LLVM project.  Recommend the automatic installation script with instructions here: <https://apt.llvm.org/> e.g. `sudo ./llvm.sh 17 all` for version 17 of clang. 
+5. Install clang from the LLVM project.  Recommend the automatic installation script with instructions here: <https://apt.llvm.org/> e.g. `sudo ./llvm.sh 17 all` for version 17 of clang.  If you don't want to use clang you can use nvcc (shown below).
 
 
 6. Clone the First Robotics Team 971 repository here: git@github.com:frc971/971-Robot-Code.git
@@ -43,11 +43,18 @@ A few reasons:
 
 9. Determine your cuda compute capability of your GPU as follows: `nvidia-smi --query-gpu compute_cap --format=csv` 
 
-10. Build the code as follows (use the compute capability determined above, e.g. 7.5 translates to 75 for CMake):
+10. Build the code as follows.  Use the compute capability determined above, e.g. 7.5 translates to 75 for CMake. For clang compilation use:
    ```
     cmake -B build -DCMAKE_CUDA_COMPILER=clang++-17 -DCMAKE_CUDA_ARCHITECTURES=75
     cd build && make 
    ```
+    For nvcc compilation use:
+   ```
+    cmake -B build -DCMAKE_CUDA_COMPILER=nvcc -DCMAKE_CUDA_ARCHITECTURES=75
+    cd build && make 
+   ```
+
+   Leaving the CMAKE_BUILD_TYPE undefined will results in a Release build.  If you want a debug build add `-DCMAKE_BUILD_TYPE=Debug` to the command lines above.
 
 If the build completes successfully you can try to run the code as shown in the next section.  If not, then try debugging what is failing by adding the VERBOSE flag to make as follows `make VERBOSE=1`.
 
