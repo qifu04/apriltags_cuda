@@ -104,6 +104,43 @@ TEST_F(GpuDetectorTest, CpuNoAprilTagDetections) {
   ASSERT_EQ(0, zarray_size(detections));
 }
 
+TEST_F(GpuDetectorTest, CpuAndGpuEqual) {
+  // CPU Detection
+  Mat gray;
+  cvtColor(bgr_img, gray, COLOR_BGR2GRAY);
+  image_u8_t im = {gray.cols, gray.rows, gray.cols, gray.data};
+  zarray_t *cpu_detections = apriltag_detector_detect(td, &im);
+
+  ASSERT_EQ(1, zarray_size(cpu_detections));
+
+  // GPU Detection
+  int width = yuyv_img.cols;
+  int height = yuyv_img.rows;
+  frc971::apriltag::GpuDetector detector(width, height, td, cam, dist);
+  detector.Detect(yuyv_img.data);
+  const zarray_t *gpu_detections = detector.Detections();
+
+  ASSERT_EQ(1, zarray_size(gpu_detections));
+
+  for (int i = 0; i < zarray_size(cpu_detections); i++) {
+    apriltag_detection_t *gpudet;
+    zarray_get(gpu_detections, i, &gpudet);
+
+    apriltag_detection_t *cpudet;
+    zarray_get(cpu_detections, i, &cpudet);
+
+    ASSERT_EQ(cpudet->id, gpudet->id);
+    ASSERT_NEAR(cpudet->c[0], gpudet->c[0], 0.5);
+    ASSERT_NEAR(cpudet->c[1], gpudet->c[1], 0.5);
+
+    for (int row = 0; row < 4; row++) {
+      for (int col = 0; col < 2; col++) {
+        ASSERT_NEAR(cpudet->p[row][col], gpudet->p[row][col], 0.5);
+      }
+    }
+  }
+}
+
 // Main function to run the tests
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
