@@ -32,7 +32,8 @@ set(CUDA_LIB_SOURCES
     labeling_allegretti_2019_BKE.cu
     line_fit_filter.cu
     points.cu
-    threshold.cu)
+    threshold.cu
+    apriltag_utils.cu)
 
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --std c++20 --expt-relaxed-constexpr -g")
 #set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --std c++20 -g")
@@ -63,9 +64,18 @@ target_link_libraries(opencv_cuda_demo
     GTest::GTest)
 
 add_executable(visualize visualize.cu)
-target_link_libraries(test_cuda
+target_link_libraries(visualize
     apriltag_cuda 
     apriltag 
+    ${OpenCV_LIBRARIES}
+    glog::glog
+    GTest::GTest)
+
+# Add the test executable
+add_executable(gpu_detector_test gpu_detector_test.cu)
+target_link_libraries(gpu_detector_test
+    apriltag_cuda
+    apriltag
     ${OpenCV_LIBRARIES}
     glog::glog
     GTest::GTest)
