@@ -69,5 +69,46 @@ cd build
 
 A window should pop up with the webcam feed displayed.  If you hold an april tag in front of the webcam then it should be detected and the outlines of the tag should be drawn.
 
+## Running visualize
+
+There is a utility called `visualize` that visualizes the imagery at a few points in the gpu detection pipeline.  To run it:
+
+```
+cd build
+./visualize
+```
+
+Press any key to cycle through the different visualizations.
+
+## Running The Tests
+
+There is a test called gpu_detector_test.  This runs a suite of gtest test fixtures that test various parts of the code.  To run the test:
+
+```
+cd build
+./gpu_detector_test
+```
+
+The output should look something like this:
+
+```
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from GpuDetectorTest
+[ RUN      ] GpuDetectorTest.GpuDetectsAprilTag
+[       OK ] GpuDetectorTest.GpuDetectsAprilTag (179 ms)
+[ RUN      ] GpuDetectorTest.GpuNoAprilTagDetections
+[       OK ] GpuDetectorTest.GpuNoAprilTagDetections (114 ms)
+[ RUN      ] GpuDetectorTest.CpuDetectsAprilTag
+[       OK ] GpuDetectorTest.CpuDetectsAprilTag (110 ms)
+[ RUN      ] GpuDetectorTest.CpuNoAprilTagDetections
+[       OK ] GpuDetectorTest.CpuNoAprilTagDetections (92 ms)
+[----------] 4 tests from GpuDetectorTest (496 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (496 ms total)
+[  PASSED  ] 4 tests.
+```
+
 
 
