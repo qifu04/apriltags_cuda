@@ -10,15 +10,24 @@ find_package(glog REQUIRED)
 find_package(GTest REQUIRED)
 find_package(OpenCV 4.9.0 REQUIRED CONFIG)
 
- CPMAddPackage(
-     NAME CCCL
-     GITHUB_REPOSITORY nvidia/cccl
-     GIT_TAG v2.3.2
-     OPTIONS "CCCL_ENABLE_BENCHMARKS OFF"
- )
+# Add CCCL package
+CPMAddPackage(
+    NAME CCCL
+    GITHUB_REPOSITORY nvidia/cccl
+    GIT_TAG v2.3.2
+    OPTIONS "CCCL_ENABLE_BENCHMARKS OFF"
+)
 
-set(TEAM971_CODE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../971-Robot-Code/third_party/apriltag/)
+# Add apriltag package
+CPMAddPackage(
+    NAME apriltag
+    GITHUB_REPOSITORY cgpadwick/apriltag
+    GIT_TAG 3.3.0
+)
 
+message("CCCL: ${CCCL_SOURCE_DIR} APRILTAG: ${apriltag_SOURCE_DIR}")
+
+# Set default build type if not specified
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
@@ -26,7 +35,6 @@ endif()
 if(CMAKE_CUDA_COMPILER)
     message(STATUS "CUDA Compiler: ${CMAKE_CUDA_COMPILER}")
 
-    # You can add specific actions based on the CUDA compiler here
     if(CMAKE_CUDA_COMPILER MATCHES "nvcc")
         message(STATUS "Using NVCC as CUDA compiler")
         if(CMAKE_BUILD_TYPE MATCHES "Debug")
@@ -46,6 +54,8 @@ else()
     message(FATAL_ERROR "CUDA compiler not found. Please set CMAKE_CUDA_COMPILER.")
 endif()
 
+add_library(apriltag::apriltag ALIAS apriltag)
+
 # Gather all source files in the current directory
 set(CUDA_LIB_SOURCES 
     apriltag_detect.cu 
@@ -62,30 +72,27 @@ add_library(apriltag_cuda ${CUDA_LIB_SOURCES})
 
 # Include directories for the compiler
 include_directories( 
-    ${TEAM971_CODE_ROOT}
-    ${TEAM971_CODE_ROOT}/common/
-    ${CMAKE_CURRENT_SOURCE_DIR}/build/_deps/cccl-src/cub
-    ${CMAKE_CURRENT_SOURCE_DIR}/build/_deps/cccl-src/libcudacxx/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/build/_deps/cccl-src/thrust
+    ${apriltag_SOURCE_DIR}
+    ${apriltag_SOURCE_DIR}/common/
+    ${CCCL_SOURCE_DIR}/cub
+    ${CCCL_SOURCE_DIR}/libcudacxx/include
+    ${CCCL_SOURCE_DIR}/thrust
     ${OpenCV_INCLUDE_DIRS})
 
-
-message(${OpenCV_INCLUDE_DIRS})
-link_directories(${TEAM971_CODE_ROOT}/build)
-
-add_executable(opencv_cuda_demo
-    opencv_cuda_demo.cu)
+# Add executable for OpenCV CUDA demo
+add_executable(opencv_cuda_demo opencv_cuda_demo.cu)
 target_link_libraries(opencv_cuda_demo 
     apriltag_cuda 
-    apriltag 
+    apriltag::apriltag
     ${OpenCV_LIBRARIES}
     glog::glog
     GTest::GTest)
 
+# Add executable for visualize
 add_executable(visualize visualize.cu)
 target_link_libraries(visualize
     apriltag_cuda 
-    apriltag 
+    apriltag::apriltag
     ${OpenCV_LIBRARIES}
     glog::glog
     GTest::GTest)
@@ -94,11 +101,12 @@ target_link_libraries(visualize
 add_executable(gpu_detector_test gpu_detector_test.cu)
 target_link_libraries(gpu_detector_test
     apriltag_cuda
-    apriltag
+    apriltag::apriltag
     ${OpenCV_LIBRARIES}
     glog::glog
     GTest::GTest)
 
+# Add a custom target to format all source files
 add_custom_target(format_all
     COMMAND clang-format -i -style=Google ${CMAKE_CURRENT_SOURCE_DIR}/*.cu ${CMAKE_CURRENT_SOURCE_DIR}/*.h
     COMMENT "Running clang-format on all source files"
