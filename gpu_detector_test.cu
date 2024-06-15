@@ -14,7 +14,7 @@ using namespace cv;
 // Fixture for the GpuDetector tests
 class GpuDetectorTest : public ::testing::Test {
  protected:
-  Mat yuyv_img, bgr_img;
+  Mat yuyv_img, bgr_img, yuyv_img_notags, bgr_img_notags;
 
   apriltag_family_t *tf = NULL;
   apriltag_detector_t *td = NULL;
@@ -26,6 +26,10 @@ class GpuDetectorTest : public ::testing::Test {
     // Read in the image
     bgr_img = cv::imread("../data/colorimage.jpg", cv::IMREAD_COLOR);
     cvtColor(bgr_img, yuyv_img, COLOR_BGR2YUV_YUYV);
+
+    bgr_img_notags =
+        cv::imread("../data/colorimage_notags.jpg", cv::IMREAD_COLOR);
+    cvtColor(bgr_img_notags, yuyv_img_notags, COLOR_BGR2YUV_YUYV);
 
     // Setup Tag Family and tag detector
     setup_tag_family(&tf, tag_family);
@@ -72,6 +76,16 @@ TEST_F(GpuDetectorTest, GpuDetectsAprilTag) {
   ASSERT_EQ(1, zarray_size(detections));
 }
 
+TEST_F(GpuDetectorTest, GpuNoAprilTagDetections) {
+  int width = yuyv_img_notags.cols;
+  int height = yuyv_img_notags.rows;
+  frc971::apriltag::GpuDetector detector(width, height, td, cam, dist);
+  detector.Detect(yuyv_img_notags.data);
+  const zarray_t *detections = detector.Detections();
+
+  ASSERT_EQ(0, zarray_size(detections));
+}
+
 TEST_F(GpuDetectorTest, CpuDetectsAprilTag) {
   Mat gray;
   cvtColor(bgr_img, gray, COLOR_BGR2GRAY);
@@ -79,6 +93,15 @@ TEST_F(GpuDetectorTest, CpuDetectsAprilTag) {
   zarray_t *detections = apriltag_detector_detect(td, &im);
 
   ASSERT_EQ(1, zarray_size(detections));
+}
+
+TEST_F(GpuDetectorTest, CpuNoAprilTagDetections) {
+  Mat gray;
+  cvtColor(bgr_img_notags, gray, COLOR_BGR2GRAY);
+  image_u8_t im = {gray.cols, gray.rows, gray.cols, gray.data};
+  zarray_t *detections = apriltag_detector_detect(td, &im);
+
+  ASSERT_EQ(0, zarray_size(detections));
 }
 
 // Main function to run the tests
