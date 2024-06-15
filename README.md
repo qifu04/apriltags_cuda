@@ -20,30 +20,14 @@ A few reasons:
 
 5. Install clang from the LLVM project.  Recommend the automatic installation script with instructions here: <https://apt.llvm.org/> e.g. `sudo ./llvm.sh 17 all` for version 17 of clang.  If you don't want to use clang you can use nvcc (shown below).
 
+6. Determine your cuda compute capability of your GPU as follows: `nvidia-smi --query-gpu compute_cap --format=csv` .  On embedded platforms like the Orin, `nvidia-smi` does not exist.  You need to run deviceQuery to find the compute capability.  You can build deviceQuery as follows:
 
-6. Clone the First Robotics Team 971 repository here: git@github.com:frc971/971-Robot-Code.git
-    ```
-    mkdir -p ~/code
-    cd ~/code
-    git clone git@github.com:frc971/971-Robot-Code.git
-    ```
+```
+# On the orin command line
+cd /usr/local/cuda/samples/1_Utilities/deviceQuery $ sudo make $ ./deviceQuery ./deviceQuery
+```
 
-7. Build the 971 fork of the UMich april tag repository as follows:
-    ```
-    cd ~/code/971-Robot-Code/third_party/apriltag
-    cmake -B build
-    cd build && make
-    ```
-
-8. Edit the CMakeLists.txt file in the current directory and update the TEAM971_CODE_ROOT variable to point to the right location.
-
-    ```
-    set(TEAM971_CODE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../971-Robot-Code/third_party/apriltag/)
-    ```
-
-9. Determine your cuda compute capability of your GPU as follows: `nvidia-smi --query-gpu compute_cap --format=csv` 
-
-10. Build the code as follows.  Use the compute capability determined above, e.g. 7.5 translates to 75 for CMake. For clang compilation use:
+7. Build the code as follows.  Use the compute capability determined above, e.g. 7.5 translates to 75 for CMake. For clang compilation use:
    ```
     cmake -B build -DCMAKE_CUDA_COMPILER=clang++-17 -DCMAKE_CUDA_ARCHITECTURES=75
     cd build && make 
