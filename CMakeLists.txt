@@ -4,14 +4,10 @@ cmake_minimum_required(VERSION 3.16 FATAL_ERROR)  # Ensure user has a compatible
 
 project(ApriltagCuda LANGUAGES CUDA CXX)  # Set project name and specify the languages used
 
-# Look for CUDA
+# Look for required packages.
 find_package(CUDA REQUIRED)
-
-# Look for glog and gtest
 find_package(glog REQUIRED)
 find_package(GTest REQUIRED)
-
-# Look for opencv
 find_package(OpenCV 4.9.0 REQUIRED CONFIG)
 
  CPMAddPackage(
@@ -23,8 +19,34 @@ find_package(OpenCV 4.9.0 REQUIRED CONFIG)
 
 set(TEAM971_CODE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../971-Robot-Code/third_party/apriltag/)
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+if(CMAKE_CUDA_COMPILER)
+    message(STATUS "CUDA Compiler: ${CMAKE_CUDA_COMPILER}")
+
+    # You can add specific actions based on the CUDA compiler here
+    if(CMAKE_CUDA_COMPILER MATCHES "nvcc")
+        message(STATUS "Using NVCC as CUDA compiler")
+        if(CMAKE_BUILD_TYPE MATCHES "Debug")
+            set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --std c++20 --expt-relaxed-constexpr -g")
+        else()
+            set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --std c++20 --expt-relaxed-constexpr -Xptxas -O3")
+        endif()
+    else()
+        message(STATUS "Using a different CUDA compiler")
+        if(CMAKE_BUILD_TYPE MATCHES "Debug")
+            set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --std c++20 -g")
+        else()
+            set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --std c++20 -O3")
+        endif()
+    endif()
+else()
+    message(FATAL_ERROR "CUDA compiler not found. Please set CMAKE_CUDA_COMPILER.")
+endif()
+
 # Gather all source files in the current directory
-#file(GLOB CUDA_SOURCES "*.cu")
 set(CUDA_LIB_SOURCES 
     apriltag_detect.cu 
     apriltag_gpu.cu
@@ -34,9 +56,6 @@ set(CUDA_LIB_SOURCES
     points.cu
     threshold.cu
     apriltag_utils.cu)
-
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --std c++20 --expt-relaxed-constexpr -g")
-#set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --std c++20 -g")
 
 # Add a library with the above source files
 add_library(apriltag_cuda ${CUDA_LIB_SOURCES})
