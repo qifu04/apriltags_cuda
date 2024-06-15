@@ -87,14 +87,11 @@ int main(int argc, char *argv[]) {
   dist.p2 = 0.001113;
   dist.k3 = 0.0;
 
-  Mat tmp, frame, framecopy;
-
-  tmp = cv::imread("colorimage.jpg", cv::IMREAD_COLOR);
-  cvtColor(tmp, frame, COLOR_BGR2YUV);
-  int width = frame.cols;
-  int height = frame.rows;
-
-  framecopy = frame.clone();
+  Mat bgr_img, yuyv_img;
+  bgr_img = cv::imread("../data/colorimage.jpg", cv::IMREAD_COLOR);
+  cvtColor(bgr_img, yuyv_img, COLOR_BGR2YUV_YUYV);
+  int width = bgr_img.cols;
+  int height = bgr_img.rows;
 
   // Make an image_u8_t header for the Mat data
   // image_u8_t im = {gray.cols, gray.rows, gray.cols, gray.data};
@@ -102,7 +99,7 @@ int main(int argc, char *argv[]) {
   // zarray_t *detections = apriltag_detector_detect(td, &im);
 
   frc971::apriltag::GpuDetector detector(width, height, td, cam, dist);
-  detector.Detect(frame.data);
+  detector.Detect(yuyv_img.data);
   const zarray_t *detections = detector.Detections();
 
   if (errno == EAGAIN) {
@@ -130,13 +127,13 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < zarray_size(detections); i++) {
     apriltag_detection_t *det;
     zarray_get(detections, i, &det);
-    line(frame, Point(det->p[0][0], det->p[0][1]),
+    line(bgr_img, Point(det->p[0][0], det->p[0][1]),
          Point(det->p[1][0], det->p[1][1]), Scalar(0, 0xff, 0), 2);
-    line(frame, Point(det->p[0][0], det->p[0][1]),
+    line(bgr_img, Point(det->p[0][0], det->p[0][1]),
          Point(det->p[3][0], det->p[3][1]), Scalar(0, 0, 0xff), 2);
-    line(frame, Point(det->p[1][0], det->p[1][1]),
+    line(bgr_img, Point(det->p[1][0], det->p[1][1]),
          Point(det->p[2][0], det->p[2][1]), Scalar(0xff, 0, 0), 2);
-    line(frame, Point(det->p[2][0], det->p[2][1]),
+    line(bgr_img, Point(det->p[2][0], det->p[2][1]),
          Point(det->p[3][0], det->p[3][1]), Scalar(0xff, 0, 0), 2);
 
     stringstream ss;
@@ -147,13 +144,13 @@ int main(int argc, char *argv[]) {
     int baseline;
     Size textsize = getTextSize(text, fontface, fontscale, 2, &baseline);
     putText(
-        frame, text,
+        bgr_img, text,
         Point(det->c[0] - textsize.width / 2, det->c[1] + textsize.height / 2),
         fontface, fontscale, Scalar(0xff, 0x99, 0), 2);
   }
   // apriltag_detections_destroy(detections);
 
-  imshow("Tag Detections", frame);
+  imshow("Tag Detections", bgr_img);
   waitKey(0);
 
   cv::Mat gray_cuda(cv::Size(width, height), CV_8UC1);
