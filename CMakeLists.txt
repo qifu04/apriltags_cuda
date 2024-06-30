@@ -6,9 +6,53 @@ project(ApriltagCuda LANGUAGES CUDA CXX)  # Set project name and specify the lan
 
 # Look for required packages.
 find_package(CUDA REQUIRED)
-find_package(glog REQUIRED)
-find_package(GTest REQUIRED)
-find_package(OpenCV 4.9.0 REQUIRED CONFIG)
+
+# Add glog package
+find_package(glog CONFIG QUIET)
+if(NOT glog_FOUND)
+    message(STATUS "glog not found: Downloading and building source")
+    CPMAddPackage(
+        NAME glog
+        GITHUB_REPOSITORY google/glog
+        GIT_TAG v0.7.1
+    )
+endif()
+
+# Add gtest package
+find_package(GTest QUIET)
+if(NOT GTest_FOUND)
+    message(STATUS "GTest not found: Downloading and building source")
+    CPMAddPackage(
+        NAME GTest
+        GITHUB_REPOSITORY google/googletest
+        GIT_TAG v1.14.0
+    )
+endif()
+
+# Add OPENCV package
+find_package(OpenCV 4.9.0 CONFIG QUIET)
+if(NOT OpenCV_FOUND)
+    message(STATUS "OpenCV not found: Downloading and building source")
+    CPMAddPackage(
+        NAME OpenCV
+        GITHUB_REPOSITORY opencv/opencv
+        GIT_TAG 4.9.0
+    )
+endif()
+
+# Add wpilib package
+find_package(wpilib QUIET)
+if(NOT wpilib_FOUND)
+    message(STATUS "wpilib not found: Downloading and building source")
+    CPMAddPackage(
+        NAME wpilib
+        GITHUB_REPOSITORY wpilibsuite/allwpilib
+        GIT_TAG v2024.3.2
+        OPTIONS "WITH_JAVA OFF"
+    )
+endif()
+# Alias apriltag to apriltag_wpilib to avoid conflicts with apriltag_custom
+add_library(apriltag_wpilib ALIAS apriltag)
 
 # Add CCCL package
 CPMAddPackage(
@@ -18,14 +62,13 @@ CPMAddPackage(
     OPTIONS "CCCL_ENABLE_BENCHMARKS OFF"
 )
 
-# Add apriltag package
+# Add custom apriltag package
 CPMAddPackage(
-    NAME apriltag
+    NAME apriltagfrc971
     GITHUB_REPOSITORY cgpadwick/apriltag
-    GIT_TAG 3.3.0
+    GIT_TAG v1.0
 )
-
-message("CCCL: ${CCCL_SOURCE_DIR} APRILTAG: ${apriltag_SOURCE_DIR}")
+add_library(apriltagfrc971::apriltagfrc971 ALIAS apriltagfrc971)
 
 # Set default build type if not specified
 if(NOT CMAKE_BUILD_TYPE)
@@ -72,8 +115,6 @@ if(ENABLE_MSAN)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${MSAN_FLAGS}")
 endif()
 
-add_library(apriltag::apriltag ALIAS apriltag)
-
 # Gather all source files in the current directory
 set(CUDA_LIB_SOURCES 
     apriltag_detect.cu 
@@ -90,18 +131,20 @@ add_library(apriltag_cuda ${CUDA_LIB_SOURCES})
 
 # Include directories for the compiler
 include_directories( 
-    ${apriltag_SOURCE_DIR}
-    ${apriltag_SOURCE_DIR}/common/
+    ${apriltagfrc971_SOURCE_DIR}
+    ${apriltagfrc971_SOURCE_DIR}/common/
     ${CCCL_SOURCE_DIR}/cub
     ${CCCL_SOURCE_DIR}/libcudacxx/include
     ${CCCL_SOURCE_DIR}/thrust
+    ${glog_INCLUDE_DIRS}
+    ${GTest_INCLUDE_DIRS}
     ${OpenCV_INCLUDE_DIRS})
 
 # Add executable for OpenCV CUDA demo
 add_executable(opencv_cuda_demo opencv_cuda_demo.cu)
 target_link_libraries(opencv_cuda_demo 
     apriltag_cuda 
-    apriltag::apriltag
+    apriltagfrc971::apriltagfrc971
     ${OpenCV_LIBRARIES}
     glog::glog
     GTest::GTest)
@@ -110,7 +153,7 @@ target_link_libraries(opencv_cuda_demo
 add_executable(visualize visualize.cu)
 target_link_libraries(visualize
     apriltag_cuda 
-    apriltag::apriltag
+    apriltagfrc971::apriltagfrc971
     ${OpenCV_LIBRARIES}
     glog::glog
     GTest::GTest)
@@ -119,7 +162,7 @@ target_link_libraries(visualize
 add_executable(gpu_detector_test gpu_detector_test.cu)
 target_link_libraries(gpu_detector_test
     apriltag_cuda
-    apriltag::apriltag
+    apriltagfrc971::apriltagfrc971
     ${OpenCV_LIBRARIES}
     glog::glog
     GTest::GTest)
