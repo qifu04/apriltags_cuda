@@ -8,39 +8,55 @@ A few reasons:
   * the 971 code depends on a lot of internal code like AOS (Autonomous Operating System).  Clients may not want to integrate with AOS and the standalone version is simpler.
   * this is probably temporary and a better way will emerge soon.
 
-## Prerequisites
+## Building The Code On A Ubuntu/Debian Machine (not in docker)
 
-1. Install cmake, e.g. `sudo apt install cmake` for debian based systems.
+1. Install the cuda toolkit and appropriate nvidia driver on your system.  Recommend version 11.8 of the cuda toolkit.  Complete instructions for cuda toolkit install for Ubuntu are here: <https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#prepare-ubuntu>
 
-2. Install opencv with the dev libraries, e.g. `sudo apt install libopencv-dev` for debian based systems.
+2. Run the install_deps script as follows to install the dependencies: `sudo ./install_deps.sh`.  This script will try to detect whether cuda is installed or not and will try to install it for you. 
 
-3. Install the google logging library glog, e.g. `sudo apt install libgoogle-glog-dev` for debian based systems.
-
-4. Install the cuda toolkit and appropriate nvidia driver on your system.  Recommend version 11.8 or later of the cuda toolkit.  Complete instructions for cuda toolkit install for Ubuntu are here: <https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#prepare-ubuntu>
-
-5. Install clang from the LLVM project.  Recommend the automatic installation script with instructions here: <https://apt.llvm.org/> e.g. `sudo ./llvm.sh 17 all` for version 17 of clang.  If you don't want to use clang you can use nvcc (shown below).
-
-6. Determine your cuda compute capability of your GPU as follows: `nvidia-smi --query-gpu compute_cap --format=csv` .  On embedded platforms like the Orin, `nvidia-smi` does not exist.  You need to run deviceQuery to find the compute capability.  You can build deviceQuery as follows:
+3. Determine your cuda compute capability of your GPU as follows: `nvidia-smi --query-gpu compute_cap --format=csv` .  On embedded platforms like the Orin, `nvidia-smi` does not exist.  You need to run deviceQuery to find the compute capability.  You can build deviceQuery as follows:
 
 ```
 # On the orin command line
-cd /usr/local/cuda/samples/1_Utilities/deviceQuery $ sudo make $ ./deviceQuery ./deviceQuery
+cd /usr/local/cuda/samples/1_Utilities/deviceQuery
+sudo make ./deviceQuery
+./deviceQuery
 ```
 
-7. Build the code as follows.  Use the compute capability determined above, e.g. 7.5 translates to 75 for CMake. For clang compilation use:
+4. Build the code as follows.  Use the compute capability determined above, e.g. 7.5 translates to 75 for CMake. For clang compilation use:
    ```
     cmake -B build -DCMAKE_CUDA_COMPILER=clang++-17 -DCMAKE_CUDA_ARCHITECTURES=75
-    cd build && make 
+    cmake --build build
    ```
     For nvcc compilation use:
    ```
     cmake -B build -DCMAKE_CUDA_COMPILER=nvcc -DCMAKE_CUDA_ARCHITECTURES=75
-    cd build && make 
+    cmake --build build
    ```
 
-   Leaving the CMAKE_BUILD_TYPE undefined will results in a Release build.  If you want a debug build add `-DCMAKE_BUILD_TYPE=Debug` to the command lines above.
+Leaving the CMAKE_BUILD_TYPE undefined will results in a Release build.  If you want a debug build add `-DCMAKE_BUILD_TYPE=Debug` to the command lines above.
 
 If the build completes successfully you can try to run the code as shown in the next section.  If not, then try debugging what is failing by adding the VERBOSE flag to make as follows `make VERBOSE=1`.
+
+### Building The Code in a Docker Container
+
+1. Run the docker build command in the current directory as follows: `docker build -t cuda-build:latest .`
+
+2. When the docker build completes, run the docker in interactive mode with the following command: `docker run -it -v/tmp:/tmp cuda-build:latest /bin/bash`.  This command maps the /tmp drive on the host to the /tmp drive in the docker container.
+
+3. At the container cmd line:
+
+```
+cd /tmp
+mkdir code
+cd code
+git clone https://github.com/cgpadwick/apriltags_cuda.git
+cd apriltags_cuda
+cmake -B build -DCMAKE_CUDA_COMPILER=clang++-17 -DCMAKE_CUDA_ARCHITECTURES=75
+cmake --build build
+```
+
+The code should build and the build artifacts will be put in the `build` directory.
 
 ## Running the code
 
