@@ -12,33 +12,35 @@ A few reasons:
 
 1. Install cmake, e.g. `sudo apt install cmake` for debian based systems.
 
-2. Install opencv with the dev libraries, e.g. `sudo apt install libopencv-dev` for debian based systems.
+2. Install the cuda toolkit and appropriate nvidia driver on your system.  Recommend version 11.8 of the cuda toolkit.  Complete instructions for cuda toolkit install for Ubuntu are here: <https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#prepare-ubuntu>
 
-3. Install the google logging library glog, e.g. `sudo apt install libgoogle-glog-dev` for debian based systems.
+3. Install clang from the LLVM project.  Recommend the automatic installation script with instructions here: <https://apt.llvm.org/> e.g. `sudo ./llvm.sh 17 all` for version 17 of clang.  If you don't want to use clang you can use nvcc (shown below).
 
-4. Install the cuda toolkit and appropriate nvidia driver on your system.  Recommend version 11.8 or later of the cuda toolkit.  Complete instructions for cuda toolkit install for Ubuntu are here: <https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#prepare-ubuntu>
-
-5. Install clang from the LLVM project.  Recommend the automatic installation script with instructions here: <https://apt.llvm.org/> e.g. `sudo ./llvm.sh 17 all` for version 17 of clang.  If you don't want to use clang you can use nvcc (shown below).
-
-6. Determine your cuda compute capability of your GPU as follows: `nvidia-smi --query-gpu compute_cap --format=csv` .  On embedded platforms like the Orin, `nvidia-smi` does not exist.  You need to run deviceQuery to find the compute capability.  You can build deviceQuery as follows:
+4. Determine your cuda compute capability of your GPU as follows: `nvidia-smi --query-gpu compute_cap --format=csv` .  On embedded platforms like the Orin, `nvidia-smi` does not exist.  You need to run deviceQuery to find the compute capability.  You can build deviceQuery as follows:
 
 ```
 # On the orin command line
-cd /usr/local/cuda/samples/1_Utilities/deviceQuery $ sudo make $ ./deviceQuery ./deviceQuery
+cd /usr/local/cuda/samples/1_Utilities/deviceQuery
+sudo make ./deviceQuery
+./deviceQuery
 ```
 
-7. Build the code as follows.  Use the compute capability determined above, e.g. 7.5 translates to 75 for CMake. For clang compilation use:
+5. Build the code as follows.  Use the compute capability determined above, e.g. 7.5 translates to 75 for CMake. For clang compilation use:
    ```
-    cmake -B build -DCMAKE_CUDA_COMPILER=clang++-17 -DCMAKE_CUDA_ARCHITECTURES=75
-    cd build && make 
+    cmake -B build -DCMAKE_CUDA_COMPILER=clang++-17 -DCMAKE_CUDA_ARCHITECTURES=75 -DCPM_SOURCE_CACHE=~/.cache/CPM
+    cmake --build build --parallel 4
    ```
     For nvcc compilation use:
    ```
     cmake -B build -DCMAKE_CUDA_COMPILER=nvcc -DCMAKE_CUDA_ARCHITECTURES=75
-    cd build && make 
+    cmake --build build --parallel 4
    ```
 
-   Leaving the CMAKE_BUILD_TYPE undefined will results in a Release build.  If you want a debug build add `-DCMAKE_BUILD_TYPE=Debug` to the command lines above.
+`-DCPM_SOURCE_CACHE` is optional - it prevents CPM from redownloading dependencies.
+
+`--parallel 4` specifies launching 4 threads for the build.  Specify more or less depending on how many threads you have available.
+
+Leaving the CMAKE_BUILD_TYPE undefined will results in a Release build.  If you want a debug build add `-DCMAKE_BUILD_TYPE=Debug` to the command lines above.
 
 If the build completes successfully you can try to run the code as shown in the next section.  If not, then try debugging what is failing by adding the VERBOSE flag to make as follows `make VERBOSE=1`.
 
