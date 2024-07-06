@@ -1,4 +1,5 @@
-include(cmake/CPM.cmake)
+include(ExternalProject)
+include(ProcessorCount)
 
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)  # Ensure user has a compatible version of CMake
 
@@ -7,68 +8,88 @@ project(ApriltagCuda LANGUAGES CUDA CXX)  # Set project name and specify the lan
 # Look for required packages.
 find_package(CUDA REQUIRED)
 
-# Add glog package
-find_package(glog CONFIG QUIET)
-if(NOT glog_FOUND)
-    message(STATUS "glog not found: Downloading and building source")
-    CPMAddPackage(
-        NAME glog
-        GITHUB_REPOSITORY google/glog
-        GIT_TAG v0.7.1
-    )
+set(GLOG_INSTALL_DIR ${CMAKE_BINARY_DIR}/glog-install)
+set(GTEST_INSTALL_DIR ${CMAKE_BINARY_DIR}/gtest-install)
+set(OPENCV_INSTALL_DIR ${CMAKE_BINARY_DIR}/OpenCV-install)
+set(WPILIB_INSTALL_DIR ${CMAKE_BINARY_DIR}/wpilib-install)
+set(CCCL_INSTALL_DIR ${CMAKE_BINARY_DIR}/cccl-install)
+
+# Determine number of processors for the parallel builds.
+if(NOT DEFINED NUM_PROCESSORS)
+    ProcessorCount(NUM_PROCESSORS)
+    if(NUM_PROCESSORS EQUAL 0)
+        set(NUM_PROCESSORS 1)
+    endif()
 endif()
+
+# Add glog package
+ExternalProject_Add(
+    glog
+    PREFIX ${CMAKE_BINARY_DIR}/glog
+    GIT_REPOSITORY https://github.com/google/glog.git
+    GIT_TAG v0.7.1
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${GLOG_INSTALL_DIR}
+    BUILD_COMMAND make -j${NUM_PROCESSORS}
+    INSTALL_COMMAND make install
+)
 
 # Add gtest package
-find_package(GTest QUIET)
-if(NOT GTest_FOUND)
-    message(STATUS "GTest not found: Downloading and building source")
-    CPMAddPackage(
-        NAME GTest
-        GITHUB_REPOSITORY google/googletest
-        GIT_TAG v1.14.0
-    )
-endif()
+ExternalProject_Add(
+    gtest
+    PREFIX ${CMAKE_BINARY_DIR}/gtest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG v1.14.0
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${GTEST_INSTALL_DIR}
+    BUILD_COMMAND make -j${NUM_PROCESSORS}
+    INSTALL_COMMAND make install
+)
 
 # Add OPENCV package
-find_package(OpenCV 4.9.0 CONFIG QUIET)
-if(NOT OpenCV_FOUND)
-    message(STATUS "OpenCV not found: Downloading and building source")
-    CPMAddPackage(
-        NAME OpenCV
-        GITHUB_REPOSITORY opencv/opencv
-        GIT_TAG 4.9.0
-    )
-endif()
+ExternalProject_Add(
+    OpenCV
+    PREFIX ${CMAKE_BINARY_DIR}/OpenCV
+    GIT_REPOSITORY https://github.com/opencv/opencv.git
+    GIT_TAG 4.9.0
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${OPENCV_INSTALL_DIR}
+    BUILD_COMMAND make -j${NUM_PROCESSORS}
+    INSTALL_COMMAND make install
+)
 
 # Add wpilib package
-find_package(wpilib QUIET)
-if(NOT wpilib_FOUND)
-    message(STATUS "wpilib not found: Downloading and building source")
-    CPMAddPackage(
-        NAME wpilib
-        GITHUB_REPOSITORY wpilibsuite/allwpilib
-        GIT_TAG v2024.3.2
-        OPTIONS "WITH_JAVA OFF"
-    )
-endif()
-# Alias apriltag to apriltag_wpilib to avoid conflicts with apriltag_custom
-add_library(apriltag_wpilib ALIAS apriltag)
+ExternalProject_Add(
+    wpilib
+    PREFIX ${CMAKE_BINARY_DIR}/wpilib
+    GIT_REPOSITORY https://github.com/wpilibsuite/allwpilib.git
+    GIT_TAG v2024.3.2
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${WPILIB_INSTALL_DIR} -DWITH_JAVA=OFF -DWITH_GUI=OFF -DOPENCV_INSTALL_DIR=${OPENCV_INSTALL_DIR}
+    BUILD_COMMAND make -j${NUM_PROCESSORS}
+    INSTALL_COMMAND make install
+)
 
 # Add CCCL package
-CPMAddPackage(
-    NAME CCCL
-    GITHUB_REPOSITORY nvidia/cccl
+ExternalProject_Add(
+    wpilib
+    PREFIX ${CMAKE_BINARY_DIR}/cccl
+    GIT_REPOSITORY https://github.com/NVIDIA/cccl.git
     GIT_TAG v2.3.2
-    OPTIONS "CCCL_ENABLE_BENCHMARKS OFF"
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CCCL_INSTALL_DIR} -DCCCL_ENABLE_BENCHMARKS=OFF
+    BUILD_COMMAND make
+    INSTALL_COMMAND make install
 )
 
-# Add custom apriltag package
-CPMAddPackage(
-    NAME apriltagfrc971
-    GITHUB_REPOSITORY cgpadwick/apriltag
+# Add 971 apriltag package
+ExternalProject_Add(
+    apriltagfrc971
+    PREFIX ${CMAKE_BINARY_DIR}/apriltagfrc971
+    GIT_REPOSITORY https://github.com/cgpadwick/apriltag.git
     GIT_TAG v1.0
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${APRILTAG_INSTALL_DIR} -DOPENCV_INSTALL_DIR=${OPENCV_INSTALL_DIR}
+    BUILD_COMMAND make -j${NUM_PROCESSORS}
+    INSTALL_COMMAND make install
 )
-add_library(apriltagfrc971::apriltagfrc971 ALIAS apriltagfrc971)
+
+add_dependencies(wpilib OpenCV)
+add_dependencies(apriltagfrc971 glog gtest OpenCV wpilib CCCL)
 
 # Set default build type if not specified
 if(NOT CMAKE_BUILD_TYPE)
@@ -128,6 +149,8 @@ set(CUDA_LIB_SOURCES
 
 # Add a library with the above source files
 add_library(apriltag_cuda ${CUDA_LIB_SOURCES})
+
+add_dependencies(apriltag_cuda apriltagfrc971)
 
 # Include directories for the compiler
 include_directories( 
