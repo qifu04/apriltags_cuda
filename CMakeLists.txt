@@ -5,6 +5,10 @@ cmake_minimum_required(VERSION 3.16 FATAL_ERROR)  # Ensure user has a compatible
 
 project(ApriltagCuda LANGUAGES CUDA CXX)  # Set project name and specify the languages used
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 # Look for required packages.
 find_package(CUDA REQUIRED)
 find_package(glog REQUIRED)
@@ -170,7 +174,9 @@ include_directories(
     ${CCCL_SOURCE_DIR}/cub
     ${CCCL_SOURCE_DIR}/libcudacxx/include
     ${CCCL_SOURCE_DIR}/thrust
-    ${OPENCV_INSTALL_DIR}/include/opencv4)
+    ${OPENCV_INSTALL_DIR}/include/opencv4
+    ${WPILIB_INSTALL_DIR}/include/ntcore
+    ${WPILIB_INSTALL_DIR}/include/wpiutil)
 
 # Add executable for OpenCV CUDA demo
 add_executable(opencv_cuda_demo opencv_cuda_demo.cu)
@@ -195,6 +201,12 @@ target_link_libraries(visualize
     ${OPENCV_INSTALL_DIR}/lib/libopencv_videoio.so
     ${OPENCV_INSTALL_DIR}/lib/libopencv_imgcodecs.so
     glog::glog)
+
+# Add a network tables example.
+add_executable(ntexample ntexample.cpp)
+target_link_libraries(ntexample
+    ${WPILIB_INSTALL_DIR}/lib/libntcore.so
+    ${WPILIB_INSTALL_DIR}/lib/libwpiutil.so)
 
 
 # Add the test executable
