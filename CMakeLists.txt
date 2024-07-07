@@ -7,12 +7,15 @@ project(ApriltagCuda LANGUAGES CUDA CXX)  # Set project name and specify the lan
 
 # Look for required packages.
 find_package(CUDA REQUIRED)
+find_package(glog REQUIRED)
+find_package(GTest REQUIRED)
 
-set(GLOG_INSTALL_DIR ${CMAKE_BINARY_DIR}/glog-install)
-set(GTEST_INSTALL_DIR ${CMAKE_BINARY_DIR}/gtest-install)
+#set(GLOG_INSTALL_DIR ${CMAKE_BINARY_DIR}/glog-install)
+#set(GTEST_INSTALL_DIR ${CMAKE_BINARY_DIR}/gtest-install)
 set(OPENCV_INSTALL_DIR ${CMAKE_BINARY_DIR}/OpenCV-install)
 set(WPILIB_INSTALL_DIR ${CMAKE_BINARY_DIR}/wpilib-install)
 set(CCCL_INSTALL_DIR ${CMAKE_BINARY_DIR}/cccl-install)
+set(APRILTAG_INSTALL_DIR ${CMAKE_BINARY_DIR}/apriltag-install)
 
 # Determine number of processors for the parallel builds.
 if(NOT DEFINED NUM_PROCESSORS)
@@ -22,27 +25,29 @@ if(NOT DEFINED NUM_PROCESSORS)
     endif()
 endif()
 
+# TODO: get glog build working correctly.  Stuck on not including <glog/logging.h>
+# correctly error.
 # Add glog package
-ExternalProject_Add(
-    glog
-    PREFIX ${CMAKE_BINARY_DIR}/glog
-    GIT_REPOSITORY https://github.com/google/glog.git
-    GIT_TAG v0.7.1
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${GLOG_INSTALL_DIR}
-    BUILD_COMMAND make -j${NUM_PROCESSORS}
-    INSTALL_COMMAND make install
-)
+#ExternalProject_Add(
+#    glog
+#    PREFIX ${CMAKE_BINARY_DIR}/glog
+#    GIT_REPOSITORY https://github.com/google/glog.git
+#    GIT_TAG v0.7.1
+#    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${GLOG_INSTALL_DIR}
+#    BUILD_COMMAND make -j${NUM_PROCESSORS}
+#    INSTALL_COMMAND make install
+#)
 
 # Add gtest package
-ExternalProject_Add(
-    gtest
-    PREFIX ${CMAKE_BINARY_DIR}/gtest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG v1.14.0
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${GTEST_INSTALL_DIR}
-    BUILD_COMMAND make -j${NUM_PROCESSORS}
-    INSTALL_COMMAND make install
-)
+#ExternalProject_Add(
+#    gtest
+#    PREFIX ${CMAKE_BINARY_DIR}/gtest
+#    GIT_REPOSITORY https://github.com/google/googletest.git
+#    GIT_TAG v1.14.0
+#    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${GTEST_INSTALL_DIR}
+#    BUILD_COMMAND make -j${NUM_PROCESSORS}
+#    INSTALL_COMMAND make install
+#)
 
 # Add OPENCV package
 ExternalProject_Add(
@@ -55,41 +60,47 @@ ExternalProject_Add(
     INSTALL_COMMAND make install
 )
 
+set(CMAKE_PREFIX_PATH ${OPENCV_INSTALL_DIR} ${CMAKE_PREFIX_PATH})
+message(STATUS "OPENCV_INSTALL_DIR: ${OPENCV_INSTALL_DIR} CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
+
 # Add wpilib package
 ExternalProject_Add(
     wpilib
     PREFIX ${CMAKE_BINARY_DIR}/wpilib
     GIT_REPOSITORY https://github.com/wpilibsuite/allwpilib.git
     GIT_TAG v2024.3.2
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${WPILIB_INSTALL_DIR} -DWITH_JAVA=OFF -DWITH_GUI=OFF -DOPENCV_INSTALL_DIR=${OPENCV_INSTALL_DIR}
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${WPILIB_INSTALL_DIR} -DWITH_JAVA=OFF -DWITH_GUI=OFF -DOpenCV_DIR=${OPENCV_INSTALL_DIR}/lib/cmake/opencv4
     BUILD_COMMAND make -j${NUM_PROCESSORS}
     INSTALL_COMMAND make install
 )
 
 # Add CCCL package
 ExternalProject_Add(
-    wpilib
+    CCCL 
     PREFIX ${CMAKE_BINARY_DIR}/cccl
     GIT_REPOSITORY https://github.com/NVIDIA/cccl.git
     GIT_TAG v2.3.2
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CCCL_INSTALL_DIR} -DCCCL_ENABLE_BENCHMARKS=OFF
-    BUILD_COMMAND make
-    INSTALL_COMMAND make install
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
 )
+
+ExternalProject_Get_Property(CCCL SOURCE_DIR)
+set(CCCL_SOURCE_DIR ${SOURCE_DIR})
 
 # Add 971 apriltag package
 ExternalProject_Add(
-    apriltagfrc971
-    PREFIX ${CMAKE_BINARY_DIR}/apriltagfrc971
+    apriltag
+    PREFIX ${CMAKE_BINARY_DIR}/apriltag
     GIT_REPOSITORY https://github.com/cgpadwick/apriltag.git
-    GIT_TAG v1.0
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${APRILTAG_INSTALL_DIR} -DOPENCV_INSTALL_DIR=${OPENCV_INSTALL_DIR}
+    GIT_TAG 3.3.0 
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${APRILTAG_INSTALL_DIR} -DOpenCV_DIR=${OPENCV_INSTALL_DIR}
     BUILD_COMMAND make -j${NUM_PROCESSORS}
     INSTALL_COMMAND make install
 )
 
 add_dependencies(wpilib OpenCV)
-add_dependencies(apriltagfrc971 glog gtest OpenCV wpilib CCCL)
+add_dependencies(apriltag OpenCV wpilib CCCL)
 
 # Set default build type if not specified
 if(NOT CMAKE_BUILD_TYPE)
@@ -150,43 +161,52 @@ set(CUDA_LIB_SOURCES
 # Add a library with the above source files
 add_library(apriltag_cuda ${CUDA_LIB_SOURCES})
 
-add_dependencies(apriltag_cuda apriltagfrc971)
+add_dependencies(apriltag_cuda apriltag)
 
 # Include directories for the compiler
 include_directories( 
-    ${apriltagfrc971_SOURCE_DIR}
-    ${apriltagfrc971_SOURCE_DIR}/common/
+    ${APRILTAG_INSTALL_DIR}/include/apriltag
+    ${APRILTAG_INSTALL_DIR}/include/apriltag/common/
     ${CCCL_SOURCE_DIR}/cub
     ${CCCL_SOURCE_DIR}/libcudacxx/include
     ${CCCL_SOURCE_DIR}/thrust
-    ${glog_INCLUDE_DIRS}
-    ${GTest_INCLUDE_DIRS}
-    ${OpenCV_INCLUDE_DIRS})
+    ${OPENCV_INSTALL_DIR}/include/opencv4)
 
 # Add executable for OpenCV CUDA demo
 add_executable(opencv_cuda_demo opencv_cuda_demo.cu)
 target_link_libraries(opencv_cuda_demo 
     apriltag_cuda 
-    apriltagfrc971::apriltagfrc971
-    ${OpenCV_LIBRARIES}
-    glog::glog
-    GTest::GTest)
+    ${APRILTAG_INSTALL_DIR}/lib/libapriltag.so 
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_core.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgproc.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_highgui.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_videoio.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgcodecs.so
+    glog::glog)
 
 # Add executable for visualize
 add_executable(visualize visualize.cu)
 target_link_libraries(visualize
-    apriltag_cuda 
-    apriltagfrc971::apriltagfrc971
-    ${OpenCV_LIBRARIES}
-    glog::glog
-    GTest::GTest)
+    apriltag_cuda
+    ${APRILTAG_INSTALL_DIR}/lib/libapriltag.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_core.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgproc.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_highgui.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_videoio.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgcodecs.so
+    glog::glog)
+
 
 # Add the test executable
 add_executable(gpu_detector_test gpu_detector_test.cu)
 target_link_libraries(gpu_detector_test
     apriltag_cuda
-    apriltagfrc971::apriltagfrc971
-    ${OpenCV_LIBRARIES}
+    ${APRILTAG_INSTALL_DIR}/lib/libapriltag.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_core.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgproc.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_highgui.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_videoio.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgcodecs.so
     glog::glog
     GTest::GTest)
 
