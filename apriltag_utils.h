@@ -19,7 +19,7 @@ extern "C" {
 
 using namespace cv;
 
-void setup_tag_family(apriltag_family_t **tf, const char *famname);
+bool setup_tag_family(apriltag_family_t **tf, const char *famname);
 void teardown_tag_family(apriltag_family_t **tf, const char *famname);
 void draw_detection_outlines(Mat &im, zarray_t *detections);
 void print_detections(zarray_t *detections);

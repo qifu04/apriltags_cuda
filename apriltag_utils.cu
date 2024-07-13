@@ -1,12 +1,13 @@
 #include <iomanip>
 #include <iostream>
 
+#include "glog/logging.h"
 #include "apriltag_utils.h"
 
 using namespace std;
 using namespace cv;
 
-void setup_tag_family(apriltag_family_t **tf, const char *famname) {
+bool setup_tag_family(apriltag_family_t **tf, const char *famname) {
   if (!strcmp(famname, "tag36h11")) {
     *tf = tag36h11_create();
   } else if (!strcmp(famname, "tag25h9")) {
@@ -24,8 +25,8 @@ void setup_tag_family(apriltag_family_t **tf, const char *famname) {
   } else if (!strcmp(famname, "tagCustom48h12")) {
     *tf = tagCustom48h12_create();
   } else {
-    printf("Unrecognized tag family name. Use e.g. \"tag36h11\".\n");
-    exit(-1);
+    LOG(ERROR) << "Unknown tag family: " << famname;
+    return(false);
   }
 }
 
