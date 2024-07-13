@@ -1,8 +1,8 @@
 #include <iomanip>
 #include <iostream>
 
-#include "glog/logging.h"
 #include "apriltag_utils.h"
+#include "glog/logging.h"
 
 using namespace std;
 using namespace cv;
@@ -26,8 +26,9 @@ bool setup_tag_family(apriltag_family_t **tf, const char *famname) {
     *tf = tagCustom48h12_create();
   } else {
     LOG(ERROR) << "Unknown tag family: " << famname;
-    return(false);
+    return (false);
   }
+  return (true);
 }
 
 void teardown_tag_family(apriltag_family_t **tf, const char *famname) {
