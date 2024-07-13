@@ -1,4 +1,5 @@
 // gpu_detector_test.cpp
+#include <glog/logging.h>
 #include <gtest/gtest.h>
 
 #include "apriltag_gpu.h"
@@ -144,5 +145,6 @@ TEST_F(GpuDetectorTest, CpuAndGpuEqual) {
 // Main function to run the tests
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
+  google::InitGoogleLogging(argv[0]);
   return RUN_ALL_TESTS();
 }
