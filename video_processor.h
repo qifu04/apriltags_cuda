@@ -1,6 +1,8 @@
 #ifndef VIDEO_PROCESSOR_H_
 #define VIDEO_PROCESSOR_H_
 
+#include <memory>
+
 #include "apriltag_gpu.h"
 #include "apriltag_utils.h"
 #include "opencv2/opencv.hpp"
@@ -28,8 +30,8 @@ class VideoProcessor {
   int nthreads_;
   apriltag_family_t* tf_;
   apriltag_detector_t* td_;
-  VideoCapture* cap_;
-  frc971::apriltag::GpuDetector* gpu_detector_;
+  std::unique_ptr<VideoCapture> cap_;
+  std::unique_ptr<frc971::apriltag::GpuDetector> gpu_detector_;
   bool initialized_;
   Mat img_;
 };

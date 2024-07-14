@@ -18,12 +18,12 @@ VideoProcessor::VideoProcessor(
 }
 
 VideoProcessor::~VideoProcessor() {
-  if (cap_ != nullptr) {
+  /*if (cap_ != nullptr) {
     delete cap_;
   }
   if (gpu_detector_ != nullptr) {
     delete gpu_detector_;
-  }
+  }*/
   teardown_tag_family(&tf_, tag_family_name_.c_str());
   if (td_ != nullptr) {
     apriltag_detector_destroy(td_);
@@ -52,7 +52,7 @@ bool VideoProcessor::initialize() {
   td_->wp = workerpool_create(nthreads_);
 
   // Setup the Video Capture device.
-  cap_ = new VideoCapture(camera_index_, CAP_V4L);
+  cap_ = std::make_unique<VideoCapture>(camera_index_, CAP_V4L);
   if (!cap_->isOpened()) {
     LOG(ERROR) << "Couldn't open video capture device " << camera_index_;
     return false;
@@ -65,7 +65,7 @@ bool VideoProcessor::initialize() {
   int width = cap_->get(CAP_PROP_FRAME_WIDTH);
   int height = cap_->get(CAP_PROP_FRAME_HEIGHT);
 
-  gpu_detector_ = new frc971::apriltag::GpuDetector(
+  gpu_detector_ = std::make_unique<frc971::apriltag::GpuDetector>(
       width, height, td_, camera_matrix_, distortion_coefficients_);
 
   initialized_ = true;
