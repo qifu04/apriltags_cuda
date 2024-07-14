@@ -17,8 +17,8 @@ class GpuDetectorTest : public ::testing::Test {
  protected:
   Mat yuyv_img, bgr_img, yuyv_img_notags, bgr_img_notags;
 
-  apriltag_family_t *tf = NULL;
-  apriltag_detector_t *td = NULL;
+  apriltag_family_t *tf = nullptr;
+  apriltag_detector_t *td = nullptr;
   const char *tag_family = "tag36h11";
   frc971::apriltag::CameraMatrix cam;
   frc971::apriltag::DistCoeffs dist;
@@ -61,8 +61,8 @@ class GpuDetectorTest : public ::testing::Test {
 
   void TearDown() override {
     // Cleanup code here if needed
-    teardown_tag_family(&tf, tag_family);
     apriltag_detector_destroy(td);
+    teardown_tag_family(&tf, tag_family);
   }
 };
 
