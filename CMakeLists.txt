@@ -20,6 +20,7 @@ set(OPENCV_INSTALL_DIR ${CMAKE_BINARY_DIR}/OpenCV-install)
 set(WPILIB_INSTALL_DIR ${CMAKE_BINARY_DIR}/wpilib-install)
 set(CCCL_INSTALL_DIR ${CMAKE_BINARY_DIR}/cccl-install)
 set(HTTPLIB_INSTALL_DIR ${CMAKE_BINARY_DIR}/httplib-install)
+set(UWEBSOCKETS_INSTALL_DIR ${CMAKE_BINARY_DIR}/uwebsockets-install)
 set(APRILTAG_INSTALL_DIR ${CMAKE_BINARY_DIR}/apriltag-install)
 
 # Determine number of processors for the parallel builds.
@@ -89,6 +90,8 @@ ExternalProject_Add(
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
 )
+ExternalProject_Get_Property(CCCL SOURCE_DIR)
+set(CCCL_SOURCE_DIR ${SOURCE_DIR})
 
 # Add cpp-httplib package
 ExternalProject_Add(
@@ -101,8 +104,17 @@ ExternalProject_Add(
     INSTALL_COMMAND make install
 )
 
-ExternalProject_Get_Property(CCCL SOURCE_DIR)
-set(CCCL_SOURCE_DIR ${SOURCE_DIR})
+# Add uWebSockets package
+ExternalProject_Add(
+    uwebsockets
+    PREFIX ${CMAKE_BINARY_DIR}/uwebsockets
+    GIT_REPOSITORY https://github.com/uNetworking/uWebSockets.git
+    GIT_TAG v20.64.0
+    CONFIGURE_COMMAND ""
+    BUILD_IN_SOURCE 1
+    BUILD_COMMAND make -f GNUmakefile -j${NUM_PROCESSORS}
+    INSTALL_COMMAND make -f GNUmakefile prefix=${UWEBSOCKETS_INSTALL_DIR} install
+)
 
 # Add 971 apriltag package
 ExternalProject_Add(
@@ -116,7 +128,7 @@ ExternalProject_Add(
 )
 
 add_dependencies(wpilib OpenCV)
-add_dependencies(apriltag OpenCV wpilib CCCL httplib)
+add_dependencies(apriltag OpenCV wpilib CCCL httplib uwebsockets)
 
 # Set default build type if not specified
 if(NOT CMAKE_BUILD_TYPE)
@@ -172,7 +184,8 @@ set(CUDA_LIB_SOURCES
     line_fit_filter.cu
     points.cu
     threshold.cu
-    apriltag_utils.cu)
+    apriltag_utils.cu
+    video_processor.cu)
 
 # Add a library with the above source files
 add_library(apriltag_cuda ${CUDA_LIB_SOURCES})
