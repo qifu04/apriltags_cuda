@@ -14,14 +14,14 @@ find_package(CUDA REQUIRED)
 find_package(glog REQUIRED)
 find_package(GTest REQUIRED)
 find_package(ZLIB REQUIRED)
+find_package(Threads REQUIRED)
 
 #set(GLOG_INSTALL_DIR ${CMAKE_BINARY_DIR}/glog-install)
 #set(GTEST_INSTALL_DIR ${CMAKE_BINARY_DIR}/gtest-install)
 set(OPENCV_INSTALL_DIR ${CMAKE_BINARY_DIR}/OpenCV-install)
 set(WPILIB_INSTALL_DIR ${CMAKE_BINARY_DIR}/wpilib-install)
 set(CCCL_INSTALL_DIR ${CMAKE_BINARY_DIR}/cccl-install)
-set(HTTPLIB_INSTALL_DIR ${CMAKE_BINARY_DIR}/httplib-install)
-set(UWEBSOCKETS_INSTALL_DIR ${CMAKE_BINARY_DIR}/uwebsockets-install)
+set(SEASOCKS_INSTALL_DIR ${CMAKE_BINARY_DIR}/seasocks-install)
 set(APRILTAG_INSTALL_DIR ${CMAKE_BINARY_DIR}/apriltag-install)
 
 # Determine number of processors for the parallel builds.
@@ -94,40 +94,16 @@ ExternalProject_Add(
 ExternalProject_Get_Property(CCCL SOURCE_DIR)
 set(CCCL_SOURCE_DIR ${SOURCE_DIR})
 
-# Add cpp-httplib package
+# Add seasocks package
 ExternalProject_Add(
-    httplib
-    PREFIX ${CMAKE_BINARY_DIR}/httplib
-    GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
-    GIT_TAG v0.16.0
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${HTTPLIB_INSTALL_DIR}
+    seasocks
+    PREFIX ${CMAKE_BINARY_DIR}/seasocks
+    GIT_REPOSITORY https://github.com/mattgodbolt/seasocks.git
+    GIT_TAG v1.4.6
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${SEASOCKS_INSTALL_DIR}
     BUILD_COMMAND make -j${NUM_PROCESSORS}
     INSTALL_COMMAND make install
 )
-
-# Add uWebSockets package
-ExternalProject_Add(
-    uwebsockets
-    PREFIX ${CMAKE_BINARY_DIR}/uwebsockets
-    GIT_REPOSITORY https://github.com/uNetworking/uWebSockets.git
-    GIT_TAG v20.64.0
-    CONFIGURE_COMMAND ""
-    BUILD_IN_SOURCE 1
-    BUILD_COMMAND make -f GNUmakefile
-    INSTALL_COMMAND make -f GNUmakefile prefix=${UWEBSOCKETS_INSTALL_DIR} install
-)
-ExternalProject_Get_Property(uwebsockets SOURCE_DIR)
-set(UWEBSOCKETS_SOURCE_DIR ${SOURCE_DIR})
-message(STATUS "UWEBSOCKETS_SOURCE_DIR: ${UWEBSOCKETS_SOURCE_DIR}")
-
-add_library(USOCKETSLIB SHARED IMPORTED)
-set_target_properties(USOCKETSLIB PROPERTIES IMPORTED_LOCATION ${UWEBSOCKETS_SOURCE_DIR}/uSockets/src/uSockets.a)
-
-#set(USOCKETSLIB ${UWEBSOCKETS_SOURCE_DIR}/uSockets/src/uSockets.a)
-#find_library(USOCKETSLIB uSockets.a 
-#    PATHS ${UWEBSOCKETS_SOURCE_DIR}/uSockets/src/
-#    REQUIRED)
-#message(STATUS "USOCKETSLIB: ${USOCKETSLIB}")
 
 # Add 971 apriltag package
 ExternalProject_Add(
@@ -141,7 +117,7 @@ ExternalProject_Add(
 )
 
 add_dependencies(wpilib OpenCV)
-add_dependencies(apriltag OpenCV wpilib CCCL httplib uwebsockets)
+add_dependencies(apriltag OpenCV wpilib CCCL seasocks)
 
 # Set default build type if not specified
 if(NOT CMAKE_BUILD_TYPE)
@@ -215,9 +191,7 @@ include_directories(
     ${OPENCV_INSTALL_DIR}/include/opencv4
     ${WPILIB_INSTALL_DIR}/include/ntcore
     ${WPILIB_INSTALL_DIR}/include/wpiutil
-    ${HTTPLIB_INSTALL_DIR}/include
-    ${UWEBSOCKETS_INSTALL_DIR}/include
-    ${UWEBSOCKETS_SOURCE_DIR}/uSockets/src)
+    ${SEASOCKS_INSTALL_DIR}/include)
 
 # Add executable for OpenCV CUDA demo
 add_executable(opencv_cuda_demo opencv_cuda_demo.cu)
@@ -249,9 +223,6 @@ target_link_libraries(ntexample
     ${WPILIB_INSTALL_DIR}/lib/libntcore.so
     ${WPILIB_INSTALL_DIR}/lib/libwpiutil.so)
 
-# Add the httpserver.
-add_executable(http_server http_server.cpp)
-
 # Add the test executable
 add_executable(gpu_detector_test gpu_detector_test.cu)
 target_link_libraries(gpu_detector_test
@@ -265,11 +236,16 @@ target_link_libraries(gpu_detector_test
     glog::glog
     GTest::GTest)
 
-add_executable(uwebsockets_server uwebsockets_server.cpp)
-#target_link_directories(uwebsockets_server PRIVATE ${USOCKETSLIB}/uSockets/src/)
-target_link_libraries(uwebsockets_server ${USOCKETSLIB} ZLIB::ZLIB)
-
-#add_executable(uwebsockets_client uwebsockets_client.cpp)
+add_executable(ws_test ws_test.cpp)
+target_link_libraries(ws_test
+    ${SEASOCKS_INSTALL_DIR}/lib/libseasocks.a
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_core.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgproc.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_highgui.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_videoio.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgcodecs.so
+    Threads::Threads
+    ZLIB::ZLIB)
 
 # Add a custom target to format all source files
 add_custom_target(format_all
