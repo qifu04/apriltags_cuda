@@ -13,6 +13,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(CUDA REQUIRED)
 find_package(glog REQUIRED)
 find_package(GTest REQUIRED)
+find_package(ZLIB REQUIRED)
 
 #set(GLOG_INSTALL_DIR ${CMAKE_BINARY_DIR}/glog-install)
 #set(GTEST_INSTALL_DIR ${CMAKE_BINARY_DIR}/gtest-install)
@@ -112,9 +113,21 @@ ExternalProject_Add(
     GIT_TAG v20.64.0
     CONFIGURE_COMMAND ""
     BUILD_IN_SOURCE 1
-    BUILD_COMMAND make -f GNUmakefile -j${NUM_PROCESSORS}
+    BUILD_COMMAND make -f GNUmakefile
     INSTALL_COMMAND make -f GNUmakefile prefix=${UWEBSOCKETS_INSTALL_DIR} install
 )
+ExternalProject_Get_Property(uwebsockets SOURCE_DIR)
+set(UWEBSOCKETS_SOURCE_DIR ${SOURCE_DIR})
+message(STATUS "UWEBSOCKETS_SOURCE_DIR: ${UWEBSOCKETS_SOURCE_DIR}")
+
+add_library(USOCKETSLIB SHARED IMPORTED)
+set_target_properties(USOCKETSLIB PROPERTIES IMPORTED_LOCATION ${UWEBSOCKETS_SOURCE_DIR}/uSockets/src/uSockets.a)
+
+#set(USOCKETSLIB ${UWEBSOCKETS_SOURCE_DIR}/uSockets/src/uSockets.a)
+#find_library(USOCKETSLIB uSockets.a 
+#    PATHS ${UWEBSOCKETS_SOURCE_DIR}/uSockets/src/
+#    REQUIRED)
+#message(STATUS "USOCKETSLIB: ${USOCKETSLIB}")
 
 # Add 971 apriltag package
 ExternalProject_Add(
@@ -202,7 +215,9 @@ include_directories(
     ${OPENCV_INSTALL_DIR}/include/opencv4
     ${WPILIB_INSTALL_DIR}/include/ntcore
     ${WPILIB_INSTALL_DIR}/include/wpiutil
-    ${HTTPLIB_INSTALL_DIR}/include)
+    ${HTTPLIB_INSTALL_DIR}/include
+    ${UWEBSOCKETS_INSTALL_DIR}/include
+    ${UWEBSOCKETS_SOURCE_DIR}/uSockets/src)
 
 # Add executable for OpenCV CUDA demo
 add_executable(opencv_cuda_demo opencv_cuda_demo.cu)
@@ -249,6 +264,12 @@ target_link_libraries(gpu_detector_test
     ${OPENCV_INSTALL_DIR}/lib/libopencv_imgcodecs.so
     glog::glog
     GTest::GTest)
+
+add_executable(uwebsockets_server uwebsockets_server.cpp)
+#target_link_directories(uwebsockets_server PRIVATE ${USOCKETSLIB}/uSockets/src/)
+target_link_libraries(uwebsockets_server ${USOCKETSLIB} ZLIB::ZLIB)
+
+#add_executable(uwebsockets_client uwebsockets_client.cpp)
 
 # Add a custom target to format all source files
 add_custom_target(format_all
