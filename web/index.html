@@ -2,31 +2,15 @@
 <html>
 <head>
     <title>WebSocket Image Viewer</title>
-    <script type="text/javascript">
-        document.addEventListener('DOMContentLoaded', (event) => {
-            var socket = new WebSocket('ws://' + location.hostname + ':9090/ws');
-
-            socket.onopen = function() {
-                console.log('WebSocket connected');
-            };
-
-            socket.onclose = function() {
-                console.log('WebSocket disconnected');
-            };
-
-            socket.onmessage = function(event) {
-                var arrayBuffer = event.data;
-                var blob = new Blob([arrayBuffer], { type: 'image/jpeg' });
-                var urlCreator = window.URL || window.webkitURL;
-                var imageUrl = urlCreator.createObjectURL(blob);
-                document.getElementById('image').src = imageUrl;
-            };
-        });
-    </script>
 </head>
 <body>
     <h1>WebSocket Image Viewer</h1>
-    <img id="image" alt="WebSocket image stream"/>
+    <img id="image" src=""/>
+    <script>
+        var ws = new WebSocket("ws://" + location.host + "/ws");
+        ws.onmessage = function(event) {
+            document.getElementById("image").src = 'data:image/jpeg;base64,' + event.data;
+        };
+    </script>
 </body>
 </html>
-
