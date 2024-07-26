@@ -105,6 +105,21 @@ ExternalProject_Add(
     INSTALL_COMMAND make install
 )
 
+# Add cpp-base64 package
+ExternalProject_Add(
+    cpp-base64
+    PREFIX ${CMAKE_BINARY_DIR}/cpp-base64
+    GIT_REPOSITORY https://github.com/ReneNyffenegger/cpp-base64
+    GIT_TAG V2.rc.08
+    CONFIGURE_COMMAND ""
+    BUILD_IN_SOURCE 1
+    BUILD_COMMAND ${CMAKE_CXX_COMPILER} -c base64.cpp
+    INSTALL_COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/cpp-base64/install/lib
+        COMMAND ar rcs ${CMAKE_BINARY_DIR}/cpp-base64/install/lib/libbase64.a base64.o
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/cpp-base64/install/include
+        COMMAND ${CMAKE_COMMAND} -E copy base64.h ${CMAKE_BINARY_DIR}/cpp-base64/install/include
+)
+
 # Add 971 apriltag package
 ExternalProject_Add(
     apriltag
@@ -191,7 +206,8 @@ include_directories(
     ${OPENCV_INSTALL_DIR}/include/opencv4
     ${WPILIB_INSTALL_DIR}/include/ntcore
     ${WPILIB_INSTALL_DIR}/include/wpiutil
-    ${SEASOCKS_INSTALL_DIR}/include)
+    ${SEASOCKS_INSTALL_DIR}/include
+    ${CMAKE_BINARY_DIR}/cpp-base64/install/include)
 
 # Add executable for OpenCV CUDA demo
 add_executable(opencv_cuda_demo opencv_cuda_demo.cu)
@@ -239,6 +255,30 @@ target_link_libraries(gpu_detector_test
 add_executable(ws_test ws_test.cpp)
 target_link_libraries(ws_test
     ${SEASOCKS_INSTALL_DIR}/lib/libseasocks.a
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_core.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgproc.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_highgui.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_videoio.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgcodecs.so
+    Threads::Threads
+    ZLIB::ZLIB)
+
+add_executable(ws_server ws_server.cpp)
+target_link_libraries(ws_server
+    ${SEASOCKS_INSTALL_DIR}/lib/libseasocks.a
+    ${CMAKE_BINARY_DIR}/cpp-base64/install/lib/libbase64.a
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_core.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgproc.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_highgui.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_videoio.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgcodecs.so
+    Threads::Threads
+    ZLIB::ZLIB)
+
+add_executable(ws_client ws_client.cpp)
+target_link_libraries(ws_client
+    ${SEASOCKS_INSTALL_DIR}/lib/libseasocks.a
+    ${CMAKE_BINARY_DIR}/cpp-base64/install/lib/libbase64.a
     ${OPENCV_INSTALL_DIR}/lib/libopencv_core.so
     ${OPENCV_INSTALL_DIR}/lib/libopencv_imgproc.so
     ${OPENCV_INSTALL_DIR}/lib/libopencv_highgui.so
