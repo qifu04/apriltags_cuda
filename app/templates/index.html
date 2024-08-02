@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AprilTag Detection with Controls</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        #apriltag-image { max-width: 100%; height: auto; }
+        .control { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>AprilTag Detection with Controls</h1>
+    <img id="apriltag-image" alt="AprilTag Detection">
+    <div class="control">
+        <label for="brightness">Brightness:</label>
+        <input type="range" id="brightness" min="0" max="100" value="50">
+    </div>
+    <div class="control">
+        <label for="exposure">Exposure:</label>
+        <input type="range" id="exposure" min="0" max="100" value="50">
+    </div>
+
+    <script>
+        const socket = io();
+
+        socket.on('connect', function() {
+            console.log('Connected to server');
+        });
+
+        socket.on('image', function(data) {
+            document.getElementById('apriltag-image').src = 'data:image/jpeg;base64,' + data;
+        });
+
+        function sendControl(type, value) {
+            socket.emit('control', {type: type, value: parseInt(value)});
+        }
+
+        document.getElementById('brightness').oninput = function() {
+            sendControl('brightness', this.value);
+        };
+
+        document.getElementById('exposure').oninput = function() {
+            sendControl('exposure', this.value);
+        };
+    </script>
+</body>
+</html>
