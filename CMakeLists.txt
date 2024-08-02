@@ -22,6 +22,7 @@ set(OPENCV_INSTALL_DIR ${CMAKE_BINARY_DIR}/OpenCV-install)
 set(WPILIB_INSTALL_DIR ${CMAKE_BINARY_DIR}/wpilib-install)
 set(CCCL_INSTALL_DIR ${CMAKE_BINARY_DIR}/cccl-install)
 set(SEASOCKS_INSTALL_DIR ${CMAKE_BINARY_DIR}/seasocks-install)
+set(JSON_INSTALL_DIR ${CMAKE_BINARY_DIR}/json-install)
 set(APRILTAG_INSTALL_DIR ${CMAKE_BINARY_DIR}/apriltag-install)
 
 # Determine number of processors for the parallel builds.
@@ -120,6 +121,16 @@ ExternalProject_Add(
         COMMAND ${CMAKE_COMMAND} -E copy base64.h ${CMAKE_BINARY_DIR}/cpp-base64/install/include
 )
 
+ExternalProject_Add(
+    json
+    PREFIX ${CMAKE_BINARY_DIR}/json
+    GIT_REPOSITORY https://github.com/nlohmann/json
+    GIT_TAG v3.11.3
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${JSON_INSTALL_DIR}
+    BUILD_COMMAND make -j${NUM_PROCESSORS}
+    INSTALL_COMMAND make install
+)
+
 # Add 971 apriltag package
 ExternalProject_Add(
     apriltag
@@ -132,7 +143,7 @@ ExternalProject_Add(
 )
 
 add_dependencies(wpilib OpenCV)
-add_dependencies(apriltag OpenCV wpilib CCCL seasocks)
+add_dependencies(apriltag OpenCV wpilib CCCL seasocks json)
 
 # Set default build type if not specified
 if(NOT CMAKE_BUILD_TYPE)
@@ -207,7 +218,8 @@ include_directories(
     ${WPILIB_INSTALL_DIR}/include/ntcore
     ${WPILIB_INSTALL_DIR}/include/wpiutil
     ${SEASOCKS_INSTALL_DIR}/include
-    ${CMAKE_BINARY_DIR}/cpp-base64/install/include)
+    ${CMAKE_BINARY_DIR}/cpp-base64/install/include
+    ${JSON_INSTALL_DIR}/include)
 
 # Add executable for OpenCV CUDA demo
 add_executable(opencv_cuda_demo opencv_cuda_demo.cu)
