@@ -287,18 +287,6 @@ target_link_libraries(ws_server
     Threads::Threads
     ZLIB::ZLIB)
 
-add_executable(ws_client ws_client.cpp)
-target_link_libraries(ws_client
-    ${SEASOCKS_INSTALL_DIR}/lib/libseasocks.a
-    ${CMAKE_BINARY_DIR}/cpp-base64/install/lib/libbase64.a
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_core.so
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgproc.so
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_highgui.so
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_videoio.so
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgcodecs.so
-    Threads::Threads
-    ZLIB::ZLIB)
-
 # Add a custom target to format all source files
 add_custom_target(format_all
 	COMMAND clang-format -i -style=Google ${CMAKE_CURRENT_SOURCE_DIR}/*.cu ${CMAKE_CURRENT_SOURCE_DIR}/*.h ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp

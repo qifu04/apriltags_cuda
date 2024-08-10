@@ -29,12 +29,6 @@
 // suspicious means of sending raw JavaScript commands to be executed on other
 // clients.
 
-#include "seasocks/PrintfLogger.h"
-#include "seasocks/Server.h"
-#include "seasocks/StringUtil.h"
-#include "seasocks/WebSocket.h"
-#include "seasocks/util/Json.h"
-
 #include <cstring>
 #include <iostream>
 #include <memory>
@@ -44,74 +38,69 @@
 #include <thread>
 
 #include "opencv2/opencv.hpp"
+#include "seasocks/PrintfLogger.h"
+#include "seasocks/Server.h"
+#include "seasocks/StringUtil.h"
+#include "seasocks/WebSocket.h"
+#include "seasocks/util/Json.h"
 
 using namespace cv;
 using namespace seasocks;
 
 class MyHandler : public WebSocket::Handler {
-public:
-    explicit MyHandler(Server* server)
-            : _server(server){
+ public:
+  explicit MyHandler(Server* server) : _server(server) {}
+
+  void onConnect(WebSocket* connection) override {
+    _connections.insert(connection);
+    std::cout << "Connected: " << connection->getRequestUri() << " : "
+              << formatAddress(connection->getRemoteAddress())
+              << "\nCredentials: " << *(connection->credentials()) << "\n";
+  }
+
+  void onData(WebSocket* connection, const char* data) override {}
+
+  void sendImage(const cv::Mat& image) {
+    for (auto c : _connections) {
+      std::vector<uchar> buf;
+      cv::imencode(".jpg", image, buf);
+      c->send(buf.data(), buf.size());
     }
+  }
 
-    void onConnect(WebSocket* connection) override {
-        _connections.insert(connection);
-        std::cout << "Connected: " << connection->getRequestUri()
-                  << " : " << formatAddress(connection->getRemoteAddress())
-                  << "\nCredentials: " << *(connection->credentials()) << "\n";
-    }
+  void onDisconnect(WebSocket* connection) override {
+    _connections.erase(connection);
+    std::cout << "Disconnected: " << connection->getRequestUri() << " : "
+              << formatAddress(connection->getRemoteAddress()) << "\n";
+  }
 
-    void onData(WebSocket* connection, const char* data) override {
-        
-    }
-
-    void sendImage(const cv::Mat& image) {
-
-        for (auto c : _connections) {
-            std::vector<uchar> buf;
-            cv::imencode(".jpg", image, buf);
-            c->send(buf.data(), buf.size());
-        }
-    }
-
-    void onDisconnect(WebSocket* connection) override {
-        _connections.erase(connection);
-        std::cout << "Disconnected: " << connection->getRequestUri()
-                  << " : " << formatAddress(connection->getRemoteAddress()) << "\n";
-    }
-
-private:
-    std::set<WebSocket*> _connections;
-    Server* _server;
+ private:
+  std::set<WebSocket*> _connections;
+  Server* _server;
 };
 
 void send_data(std::shared_ptr<MyHandler> handler) {
-
-    Mat bgr_img = cv::imread("data/colorimage.jpg", cv::IMREAD_COLOR);
-    while(true)
-    {
-        handler->sendImage(bgr_img);
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
+  Mat bgr_img = cv::imread("data/colorimage.jpg", cv::IMREAD_COLOR);
+  while (true) {
+    handler->sendImage(bgr_img);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
 }
 
 int main(int /*argc*/, const char* /*argv*/[]) {
-    
-    auto logger = std::make_shared<PrintfLogger>(Logger::Level::Debug);
+  auto logger = std::make_shared<PrintfLogger>(Logger::Level::Debug);
 
-    Server server(logger);
+  Server server(logger);
 
-    auto handler = std::make_shared<MyHandler>(&server);
-    server.addWebSocketHandler("/ws", handler);
+  auto handler = std::make_shared<MyHandler>(&server);
+  server.addWebSocketHandler("/ws", handler);
 
-    std::thread serverThread([&]() {
-        server.serve("web", 9090);
-    });
+  std::thread serverThread([&]() { server.serve("web", 9090); });
 
-    std::thread send_thread(send_data, handler);
+  std::thread send_thread(send_data, handler);
 
-    send_thread.join();
-    serverThread.join();
+  send_thread.join();
+  serverThread.join();
 
-    return 0;
+  return 0;
 }
