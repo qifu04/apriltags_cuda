@@ -5,6 +5,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <nlohmann/json.hpp>
@@ -13,18 +14,11 @@
 #include <thread>
 
 using json = nlohmann::json;
+using namespace std;
 
 class AprilTagHandler : public seasocks::WebSocket::Handler {
  public:
-  AprilTagHandler(const std::string& imagePath,
-                  std::shared_ptr<seasocks::Server> server)
-      : imagePath_(imagePath), server_(server) {
-    // Load the image once to check if it's valid
-    cv::Mat testImage = cv::imread(imagePath_);
-    if (testImage.empty()) {
-      throw std::runtime_error("Could not open image file: " + imagePath_);
-    }
-  }
+  AprilTagHandler(std::shared_ptr<seasocks::Server> server) : server_(server) {}
 
   void onConnect(seasocks::WebSocket* socket) override {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -63,30 +57,33 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     });
   }
 
-  void readAndSend() {
+  void readAndSend(const int camera_idx) {
+    cout << "Enabling video capture" << endl;
+    cv::VideoCapture cap(camera_idx, cv::CAP_V4L);
+    if (!cap.isOpened()) {
+      cerr << "Couldn't open video capture device" << endl;
+      return;
+    }
+    cap.set(cv::CAP_PROP_CONVERT_RGB, false);
+    // cap.set(CAP_PROP_MODE, CV_CAP_MODE_YUYV);
+    cap.set(cv::CAP_PROP_FRAME_WIDTH, 1920);
+    cap.set(cv::CAP_PROP_FRAME_HEIGHT, 1080);
+
+    cout << "  " << cap.get(cv::CAP_PROP_FRAME_WIDTH) << "x"
+         << cap.get(cv::CAP_PROP_FRAME_HEIGHT) << " @"
+         << cap.get(cv::CAP_PROP_FPS) << "FPS" << endl;
+
+    cv::Mat bgr_img, yuyv_img;
     while (running_) {
-      cv::Mat frame = cv::imread(imagePath_);
-      if (frame.empty()) {
-        std::cerr << "Error: Could not read image file." << std::endl;
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        continue;
-      }
-
-      // Apply brightness (simulated)
-      frame.convertTo(frame, -1, 1, brightness_ - 50);
-
-      // Simulate AprilTag detection
-      cv::rectangle(frame, cv::Point(100, 100), cv::Point(200, 200),
-                    cv::Scalar(0, 255, 0), 2);
+      cap >> yuyv_img;
+      cv::cvtColor(yuyv_img, bgr_img, cv::COLOR_YUV2BGR_YUYV);
 
       // Encode the image to JPEG
       std::vector<uchar> buffer;
-      cv::imencode(".jpg", frame, buffer);
+      cv::imencode(".jpg", bgr_img, buffer);
 
       // Broadcast the image
       broadcast(buffer);
-
-      std::this_thread::sleep_for(std::chrono::milliseconds(33));  // ~30 fps
     }
   }
 
@@ -95,7 +92,6 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
  private:
   std::set<seasocks::WebSocket*> clients_;
   std::mutex mutex_;
-  std::string imagePath_;
   std::shared_ptr<seasocks::Server> server_;
   std::atomic<bool> running_{true};
   std::atomic<int> brightness_{50};
@@ -104,7 +100,13 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 
 int main(int argc, char* argv[]) {
   if (argc != 2) {
-    std::cerr << "Usage: " << argv[0] << " <path_to_image_file>" << std::endl;
+    std::cerr << "Usage: " << argv[0] << " <camera index>" << std::endl;
+    return 1;
+  }
+
+  int camera_idx = atoi(argv[1]);
+  if (camera_idx < 0) {
+    std::cerr << "Invalid camera index: " << camera_idx << std::endl;
     return 1;
   }
 
@@ -112,10 +114,11 @@ int main(int argc, char* argv[]) {
   auto server = std::make_shared<seasocks::Server>(logger);
 
   try {
-    auto handler = std::make_shared<AprilTagHandler>(argv[1], server);
+    auto handler = std::make_shared<AprilTagHandler>(server);
     server->addWebSocketHandler("/ws", handler);
 
-    std::thread read_thread(&AprilTagHandler::readAndSend, handler);
+    std::thread read_thread(
+        bind(&AprilTagHandler::readAndSend, handler, camera_idx));
 
     server->serve("", 8080);
 
