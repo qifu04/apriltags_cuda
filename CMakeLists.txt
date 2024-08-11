@@ -275,8 +275,10 @@ target_link_libraries(ws_test
     Threads::Threads
     ZLIB::ZLIB)
 
-add_executable(ws_server ws_server.cpp)
+add_executable(ws_server ws_server.cu)
 target_link_libraries(ws_server
+    apriltag_cuda
+    ${APRILTAG_INSTALL_DIR}/lib/libapriltag.so
     ${SEASOCKS_INSTALL_DIR}/lib/libseasocks.a
     ${CMAKE_BINARY_DIR}/cpp-base64/install/lib/libbase64.a
     ${OPENCV_INSTALL_DIR}/lib/libopencv_core.so
@@ -284,6 +286,7 @@ target_link_libraries(ws_server
     ${OPENCV_INSTALL_DIR}/lib/libopencv_highgui.so
     ${OPENCV_INSTALL_DIR}/lib/libopencv_videoio.so
     ${OPENCV_INSTALL_DIR}/lib/libopencv_imgcodecs.so
+    glog::glog
     Threads::Threads
     ZLIB::ZLIB)
 

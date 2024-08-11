@@ -1,3 +1,5 @@
+#include <gflags/gflags.h>
+#include <glog/logging.h>
 #include <seasocks/PrintfLogger.h>
 #include <seasocks/Server.h>
 #include <seasocks/StringUtil.h>
@@ -13,8 +15,18 @@
 #include <set>
 #include <thread>
 
+#include "apriltag_gpu.h"
+#include "apriltag_utils.h"
+#include "opencv2/opencv.hpp"
+
+extern "C" {
+#include "apriltag.h"
+}
+
 using json = nlohmann::json;
 using namespace std;
+
+DEFINE_int32(camera_idx, 0, "Camera index");
 
 class AprilTagHandler : public seasocks::WebSocket::Handler {
  public:
@@ -40,11 +52,11 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
         if (j.contains("exposure")) {
           exposure_ = j["exposure"].get<int>();
         }
-        std::cout << "Received settings - Brightness: " << brightness_
-                  << ", Exposure: " << exposure_ << std::endl;
+        LOG(INFO) << "Received settings - Brightness: " << brightness_
+                  << ", Exposure: " << exposure_;
       }
     } catch (const json::parse_error& e) {
-      std::cerr << "JSON parse error: " << e.what() << std::endl;
+      LOG(ERROR) << "JSON parse error: " << e.what();
     }
   }
 
@@ -58,10 +70,10 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
   }
 
   void readAndSend(const int camera_idx) {
-    cout << "Enabling video capture" << endl;
+    LOG(INFO) << "Enabling video capture";
     cv::VideoCapture cap(camera_idx, cv::CAP_V4L);
     if (!cap.isOpened()) {
-      cerr << "Couldn't open video capture device" << endl;
+      LOG(ERROR) << "Couldn't open video capture device";
       return;
     }
     cap.set(cv::CAP_PROP_CONVERT_RGB, false);
@@ -69,14 +81,55 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     cap.set(cv::CAP_PROP_FRAME_WIDTH, 1920);
     cap.set(cv::CAP_PROP_FRAME_HEIGHT, 1080);
 
-    cout << "  " << cap.get(cv::CAP_PROP_FRAME_WIDTH) << "x"
-         << cap.get(cv::CAP_PROP_FRAME_HEIGHT) << " @"
-         << cap.get(cv::CAP_PROP_FPS) << "FPS" << endl;
+    int frame_width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
+    int frame_height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
+    int frame_rate = cap.get(cv::CAP_PROP_FPS);
+
+    LOG(INFO) << "  " << frame_width << "x" << frame_height << " @"
+              << frame_rate << "FPS";
+
+    // Setup the apriltag detector.
+    apriltag_family_t* tf = nullptr;
+    apriltag_detector_t* td = nullptr;
+    const char* tag_family = "tag36h11";
+    frc971::apriltag::CameraMatrix cam;
+    frc971::apriltag::DistCoeffs dist;
+
+    setup_tag_family(&tf, tag_family);
+    td = apriltag_detector_create();
+    apriltag_detector_add_family(td, tf);
+
+    td->quad_decimate = 2.0;
+    td->quad_sigma = 0.0;
+    td->nthreads = 1;
+    td->debug = false;
+    td->refine_edges = true;
+    td->wp = workerpool_create(1);
+
+    // Setup Camera Matrix
+    cam.fx = 905.495617;
+    cam.fy = 907.909470;
+    cam.cx = 609.916016;
+    cam.cy = 352.682645;
+
+    // Setup Distortion Coefficients
+    dist.k1 = 0.059238;
+    dist.k2 = -0.075154;
+    dist.p1 = -0.003801;
+    dist.p2 = 0.001113;
+    dist.k3 = 0.0;
+
+    frc971::apriltag::GpuDetector detector(frame_width, frame_height, td, cam,
+                                           dist);
 
     cv::Mat bgr_img, yuyv_img;
     while (running_) {
       cap >> yuyv_img;
       cv::cvtColor(yuyv_img, bgr_img, cv::COLOR_YUV2BGR_YUYV);
+
+      detector.Detect(yuyv_img.data);
+      const zarray_t* detections = detector.Detections();
+      draw_detection_outlines(bgr_img, const_cast<zarray_t*>(detections));
 
       // Encode the image to JPEG
       std::vector<uchar> buffer;
@@ -85,6 +138,10 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
       // Broadcast the image
       broadcast(buffer);
     }
+
+    // Clean up
+    apriltag_detector_destroy(td);
+    teardown_tag_family(&tf, tag_family);
   }
 
   void stop() { running_ = false; }
@@ -99,16 +156,9 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 };
 
 int main(int argc, char* argv[]) {
-  if (argc != 2) {
-    std::cerr << "Usage: " << argv[0] << " <camera index>" << std::endl;
-    return 1;
-  }
-
-  int camera_idx = atoi(argv[1]);
-  if (camera_idx < 0) {
-    std::cerr << "Invalid camera index: " << camera_idx << std::endl;
-    return 1;
-  }
+  google::InitGoogleLogging(argv[0]);
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  google::SetVLOGLevel("*", FLAGS_v);
 
   auto logger = std::make_shared<seasocks::PrintfLogger>();
   auto server = std::make_shared<seasocks::Server>(logger);
@@ -118,7 +168,7 @@ int main(int argc, char* argv[]) {
     server->addWebSocketHandler("/ws", handler);
 
     std::thread read_thread(
-        bind(&AprilTagHandler::readAndSend, handler, camera_idx));
+        bind(&AprilTagHandler::readAndSend, handler, FLAGS_camera_idx));
 
     server->serve("", 8080);
 
@@ -127,9 +177,11 @@ int main(int argc, char* argv[]) {
       read_thread.join();
     }
   } catch (const std::exception& e) {
-    std::cerr << "Error: " << e.what() << std::endl;
+    LOG(ERROR) << e.what();
     return 1;
   }
+
+  gflags::ShutDownCommandLineFlags();
 
   return 0;
 }
