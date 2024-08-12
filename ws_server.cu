@@ -7,6 +7,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -28,6 +29,8 @@ using namespace std;
 
 DEFINE_int32(camera_idx, 0, "Camera index");
 
+enum ExposureMode { AUTO = 0, MANUAL = 1 };
+
 class AprilTagHandler : public seasocks::WebSocket::Handler {
  public:
   AprilTagHandler(std::shared_ptr<seasocks::Server> server) : server_(server) {}
@@ -44,17 +47,22 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 
   void onData(seasocks::WebSocket* socket, const char* data) override {
     try {
+      std::cerr << "Received data: " << data << std::endl;
       auto j = json::parse(data);
-      if (j["type"] == "control") {
-        if (j.contains("brightness")) {
-          brightness_ = j["brightness"].get<int>();
-        }
-        if (j.contains("exposure")) {
-          exposure_ = j["exposure"].get<int>();
-        }
-        LOG(INFO) << "Received settings - Brightness: " << brightness_
-                  << ", Exposure: " << exposure_;
+      settings_changed_ = false;
+      if (j["type"] == "brightness") {
+        brightness_ = j["value"].get<int>();
+        settings_changed_ = true;
       }
+      if (j["type"] == "exposure") {
+        exposure_ = j["value"].get<int>();
+        settings_changed_ = true;
+      }
+      if (j["type"] == "exposure-mode") {
+        exposure_mode_ = j["value"].get<int>();
+        settings_changed_ = true;
+      }
+
     } catch (const json::parse_error& e) {
       LOG(ERROR) << "JSON parse error: " << e.what();
     }
@@ -67,6 +75,16 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
         client->send(data.data(), data.size());
       }
     });
+  }
+
+  void startReadAndSendThread(const int camera_idx) {
+    read_thread_ = std::thread(&AprilTagHandler::readAndSend, this, camera_idx);
+  }
+
+  void joinReadAndSendThread() {
+    if (read_thread_.joinable()) {
+      read_thread_.join();
+    }
   }
 
   void readAndSend(const int camera_idx) {
@@ -85,8 +103,14 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     int frame_height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
     int frame_rate = cap.get(cv::CAP_PROP_FPS);
 
-    LOG(INFO) << "  " << frame_width << "x" << frame_height << " @"
-              << frame_rate << "FPS";
+    std::cout << "  " << frame_width << "x" << frame_height << " @"
+              << frame_rate << "FPS" << std::endl;
+
+    std::cout << "AUTO Exposure: " << cap.get(cv::CAP_PROP_AUTO_EXPOSURE)
+              << std::endl;
+    std::cout << "Brightness: " << cap.get(cv::CAP_PROP_BRIGHTNESS)
+              << std::endl;
+    std::cout << "Contrast: " << cap.get(cv::CAP_PROP_CONTRAST) << std::endl;
 
     // Setup the apriltag detector.
     apriltag_family_t* tf = nullptr;
@@ -124,6 +148,20 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 
     cv::Mat bgr_img, yuyv_img;
     while (running_) {
+      // Handle settings changes.
+      if (settings_changed_.exchange(false)) {
+        std::cout << "Setting changed" << std::endl;
+        if (exposure_mode_ == 0) {
+          std::cout << "Auto Exposure set to Auto" << std::endl;
+          cap.set(cv::CAP_PROP_AUTO_EXPOSURE, 3);
+        } else if (exposure_mode_ == 1) {
+          std::cout << "Auto Exposure set to Manual" << std::endl;
+          cap.set(cv::CAP_PROP_AUTO_EXPOSURE, 1);
+          cap.set(cv::CAP_PROP_BRIGHTNESS, brightness_);
+          cap.set(cv::CAP_PROP_EXPOSURE, exposure_);
+        }
+      }
+
       cap >> yuyv_img;
       cv::cvtColor(yuyv_img, bgr_img, cv::COLOR_YUV2BGR_YUYV);
 
@@ -153,6 +191,9 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
   std::atomic<bool> running_{true};
   std::atomic<int> brightness_{50};
   std::atomic<int> exposure_{50};
+  std::atomic<int> exposure_mode_{0};
+  std::atomic<bool> settings_changed_{false};
+  std::thread read_thread_;
 };
 
 int main(int argc, char* argv[]) {
@@ -167,15 +208,10 @@ int main(int argc, char* argv[]) {
     auto handler = std::make_shared<AprilTagHandler>(server);
     server->addWebSocketHandler("/ws", handler);
 
-    std::thread read_thread(
-        bind(&AprilTagHandler::readAndSend, handler, FLAGS_camera_idx));
-
+    handler->startReadAndSendThread(FLAGS_camera_idx);
     server->serve("", 8080);
-
     handler->stop();
-    if (read_thread.joinable()) {
-      read_thread.join();
-    }
+    handler->joinReadAndSendThread();
   } catch (const std::exception& e) {
     LOG(ERROR) << e.what();
     return 1;

@@ -11,13 +11,22 @@
 <body>
     <h1>AprilTag Detection with Controls</h1>
     <img id="apriltag-image" alt="AprilTag Detection">
+
+    <div class="control">
+        <label>Exposure Mode:</label>
+        <input type="radio" id="auto-exposure" name="exposure-mode" value="0" checked>
+        <label for="auto-exposure">Auto</label>
+        <input type="radio" id="manual-exposure" name="exposure-mode" value="1">
+        <label for="manual-exposure">Manual</label>
+    </div>
+
     <div class="control">
         <label for="brightness">Brightness:</label>
-        <input type="range" id="brightness" min="0" max="100" value="50">
+        <input type="range" id="brightness" min="0" max="256" value="128">
     </div>
     <div class="control">
         <label for="exposure">Exposure:</label>
-        <input type="range" id="exposure" min="0" max="100" value="50">
+        <input type="range" id="exposure" min="0" max="1000" value="500">
     </div>
 
     <script>
@@ -32,16 +41,28 @@
         });
 
         function sendControl(type, value) {
-            socket.emit('control', {type: type, value: parseInt(value)});
+            socket.emit('control', {type: type, value: value});
         }
 
         document.getElementById('brightness').oninput = function() {
-            sendControl('brightness', this.value);
+            sendControl('brightness', parseInt(this.value));
         };
 
         document.getElementById('exposure').oninput = function() {
-            sendControl('exposure', this.value);
+            sendControl('exposure', parseInt(this.value));
         };
+
+        document.querySelectorAll('input[name="exposure-mode"]').forEach((radio) => {
+            radio.onchange = function() {
+                sendControl('exposure-mode', parseInt(this.value));
+                document.getElementById('exposure').disabled = (this.value === '0');
+                document.getElementById('brightness').disabled = (this.value === '0');
+            };
+        });
+
+        // Initial state
+        document.getElementById('exposure').disabled = true;
+        document.getElementById('brightness').disabled = true;
     </script>
 </body>
 </html>
