@@ -16,7 +16,7 @@ A few reasons:
 
 3. Determine your cuda compute capability of your GPU as follows: `nvidia-smi --query-gpu compute_cap --format=csv` .  On embedded platforms like the Orin, `nvidia-smi` does not exist.  You need to run deviceQuery to find the compute capability.  You can build deviceQuery as follows:
 
-```
+```bash
 # On the orin command line
 cd /usr/local/cuda/samples/1_Utilities/deviceQuery
 sudo make ./deviceQuery
@@ -24,19 +24,21 @@ sudo make ./deviceQuery
 ```
 
 4. Build the code as follows.  Use the compute capability determined above, e.g. 7.5 translates to 75 for CMake. For clang compilation use:
-   ```
-    cmake -B build -DCMAKE_CUDA_COMPILER=clang++-17 -DCMAKE_CUDA_ARCHITECTURES=75
-    cmake --build build
-   ```
-    For nvcc compilation use:
-   ```
-    cmake -B build -DCMAKE_CUDA_COMPILER=nvcc -DCMAKE_CUDA_ARCHITECTURES=75
-    cmake --build build
-   ```
+```bash
+cmake -B build -DCMAKE_CUDA_COMPILER=clang++-17 -DCMAKE_CXX_COMPILER=clang++-17 -DCMAKE_CUDA_ARCHITECTURES=75
+cmake --build build
+```
+
+For nvcc compilation use (not recommended but should work):
+
+```bash
+cmake -B build -DCMAKE_CUDA_COMPILER=nvcc -DCMAKE_CXX_COMPILER=clang++-17 -DCMAKE_CUDA_ARCHITECTURES=75
+cmake --build build
+```
 
 Leaving the CMAKE_BUILD_TYPE undefined will results in a Release build.  If you want a debug build add `-DCMAKE_BUILD_TYPE=Debug` to the command lines above.
 
-If the build completes successfully you can try to run the code as shown in the next section.  If not, then try debugging what is failing by adding the VERBOSE flag to make as follows `make VERBOSE=1`.
+The build process down pulls down a lot of packages and builds them.  This build can take a while - good time for an extended coffee break.  If the build completes successfully you can try to run the code as shown in the next section.  If not, then try debugging what is failing by adding the VERBOSE flag to make as follows `cd build; make VERBOSE=1`.
 
 ### Building The Code in a Docker Container
 
@@ -46,23 +48,23 @@ If the build completes successfully you can try to run the code as shown in the 
 
 3. At the container cmd line:
 
-```
+```bash
 cd /tmp
 mkdir code
 cd code
 git clone https://github.com/cgpadwick/apriltags_cuda.git
 cd apriltags_cuda
-cmake -B build -DCMAKE_CUDA_COMPILER=clang++-17 -DCMAKE_CUDA_ARCHITECTURES=75
+cmake -B build -DCMAKE_CUDA_COMPILER=clang++-17 -DCMAKE_CXX_COMPILER=clang++-17 -DCMAKE_CUDA_ARCHITECTURES=75
 cmake --build build
 ```
 
 The code should build and the build artifacts will be put in the `build` directory.
 
-## Running the code
+## Running The OpenCV Demo Code
 
 Plug in a USB web cam into your system.  Then run the code as follows:
 
-```
+```bash
 cd build
 ./opencv_cuda_demo
 ```
@@ -73,7 +75,7 @@ A window should pop up with the webcam feed displayed.  If you hold an april tag
 
 There is a utility called `visualize` that visualizes the imagery at a few points in the gpu detection pipeline.  To run it:
 
-```
+```bash
 cd build
 ./visualize
 ```
@@ -84,14 +86,14 @@ Press any key to cycle through the different visualizations.
 
 There is a test called gpu_detector_test.  This runs a suite of gtest test fixtures that test various parts of the code.  To run the test:
 
-```
+```bash
 cd build
 ./gpu_detector_test
 ```
 
 The output should look something like this:
 
-```
+```bash
 [==========] Running 4 tests from 1 test suite.
 [----------] Global test environment set-up.
 [----------] 4 tests from GpuDetectorTest
@@ -110,5 +112,36 @@ The output should look something like this:
 [  PASSED  ] 4 tests.
 ```
 
+## Running The Detection System
 
+This code ships with a GPU apriltag detection pipeline, and a flask based web viewer.  To run the detection system do the following:
+
+* Plug in a USB webcam to your system.
+
+* From the root directory (e.g. apriltags_cuda):
+```bash
+# Start the GPU Detection Pipeline:
+./build/ws_server -camera_idx 0
+```
+
+* This will start the GPU detection pipeline running off of frames from /dev/video0.  You can also set other indices if your camera mounts on /dev/video1 or a different device.
+
+* Build the python virtualenv for the flask app:
+```bash
+cd app
+virtualenv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+* Launch the flask app
+```bash
+python app.py
+```
+
+* Now bring up a web browser and navigate to `http://localhost:5000` and you should see something like shown below
+
+Flask App: ![Alt](/res/flaskapp.png "Flask App Screenshot")
+
+* You can adjust between manual and auto exposure.  When manual exposure is selected you can adjust the exposure and brightness of the image.  If you hold an apriltag of type 36h11 it should be detected by the system and outlines of the detection will be shown.
 
