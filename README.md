@@ -42,11 +42,17 @@ The build process down pulls down a lot of packages and builds them.  This build
 
 ### Building The Code in a Docker Container
 
-1. Run the docker build command in the current directory as follows: `docker build -t cuda-build:latest .`
+1. Follow the instructions for [installing the nvidia container toolkit] (https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 
-2. When the docker build completes, run the docker in interactive mode with the following command: `docker run -it -v/tmp:/tmp cuda-build:latest /bin/bash`.  This command maps the /tmp drive on the host to the /tmp drive in the docker container.
+2. Edit the nvidia container config file `sudo vim /etc/nvidia-container-runtime/config.toml` and censure that `no-cgroups = false`, and save the file.
 
-3. At the container cmd line:
+3. Restart the docker daemon: `sudo systemctl restart docker`
+
+4. Run the docker build command in the current directory as follows: `docker build -t cuda-build:latest .`
+
+5. When the docker build completes, run the docker in interactive mode with the following command: `docker run -it -v/tmp:/tmp --runtime=nvidia --gpus all cuda-build:latest /bin/bash`.  This command maps the /tmp drive on the host to the /tmp drive in the docker container.
+
+6. At the container cmd line:
 
 ```bash
 cd /tmp
@@ -58,7 +64,7 @@ cmake -B build -DCMAKE_CUDA_COMPILER=clang++-17 -DCMAKE_CXX_COMPILER=clang++-17 
 cmake --build build
 ```
 
-The code should build and the build artifacts will be put in the `build` directory.
+The code should build and the build artifacts will be put in the `build` directory.  Test and see if it is working by running the test: `cd build; ./gpu_detector_test`
 
 ## Running The OpenCV Demo Code
 
