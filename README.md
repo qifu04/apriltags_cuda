@@ -42,15 +42,19 @@ The build process down pulls down a lot of packages and builds them.  This build
 
 ### Building The Code in a Docker Container
 
-1. Follow the instructions for [installing the nvidia container toolkit] (https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+1. Follow the instructions for [installing the nvidia container toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 
-2. Edit the nvidia container config file `sudo vim /etc/nvidia-container-runtime/config.toml` and censure that `no-cgroups = false`, and save the file.
+2. Edit the nvidia container config file `sudo vim /etc/nvidia-container-runtime/config.toml` and ensure that `no-cgroups = false`, and save the file.
 
 3. Restart the docker daemon: `sudo systemctl restart docker`
 
 4. Run the docker build command in the current directory as follows: `docker build -t cuda-build:latest .`
 
-5. When the docker build completes, run the docker in interactive mode with the following command: `docker run -it -v/tmp:/tmp --runtime=nvidia --gpus all cuda-build:latest /bin/bash`.  This command maps the /tmp drive on the host to the /tmp drive in the docker container.
+5. When the docker build completes, run the docker in interactive mode with the following command: 
+```bash
+docker run -it -v/tmp:/tmp --runtime=nvidia --gpus all cuda-build:latest /bin/bash
+```
+This command maps the /tmp drive on the host to the /tmp drive in the docker container.
 
 6. At the container cmd line:
 
