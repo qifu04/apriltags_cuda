@@ -33,30 +33,6 @@ if(NOT DEFINED NUM_PROCESSORS)
     endif()
 endif()
 
-# TODO: get glog build working correctly.  Stuck on not including <glog/logging.h>
-# correctly error.
-# Add glog package
-#ExternalProject_Add(
-#    glog
-#    PREFIX ${CMAKE_BINARY_DIR}/glog
-#    GIT_REPOSITORY https://github.com/google/glog.git
-#    GIT_TAG v0.7.1
-#    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${GLOG_INSTALL_DIR}
-#    BUILD_COMMAND make -j${NUM_PROCESSORS}
-#    INSTALL_COMMAND make install
-#)
-
-# Add gtest package
-#ExternalProject_Add(
-#    gtest
-#    PREFIX ${CMAKE_BINARY_DIR}/gtest
-#    GIT_REPOSITORY https://github.com/google/googletest.git
-#    GIT_TAG v1.14.0
-#    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${GTEST_INSTALL_DIR}
-#    BUILD_COMMAND make -j${NUM_PROCESSORS}
-#    INSTALL_COMMAND make install
-#)
-
 # Add OPENCV package
 ExternalProject_Add(
     OpenCV
@@ -104,21 +80,6 @@ ExternalProject_Add(
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${SEASOCKS_INSTALL_DIR}
     BUILD_COMMAND make -j${NUM_PROCESSORS}
     INSTALL_COMMAND make install
-)
-
-# Add cpp-base64 package
-ExternalProject_Add(
-    cpp-base64
-    PREFIX ${CMAKE_BINARY_DIR}/cpp-base64
-    GIT_REPOSITORY https://github.com/ReneNyffenegger/cpp-base64
-    GIT_TAG V2.rc.08
-    CONFIGURE_COMMAND ""
-    BUILD_IN_SOURCE 1
-    BUILD_COMMAND ${CMAKE_CXX_COMPILER} -c base64.cpp
-    INSTALL_COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/cpp-base64/install/lib
-        COMMAND ar rcs ${CMAKE_BINARY_DIR}/cpp-base64/install/lib/libbase64.a base64.o
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/cpp-base64/install/include
-        COMMAND ${CMAKE_COMMAND} -E copy base64.h ${CMAKE_BINARY_DIR}/cpp-base64/install/include
 )
 
 ExternalProject_Add(
@@ -192,15 +153,15 @@ endif()
 
 # Gather all source files in the current directory
 set(CUDA_LIB_SOURCES 
-    apriltag_detect.cu 
-    apriltag_gpu.cu
-    cuda_frc971.cu
-    labeling_allegretti_2019_BKE.cu
-    line_fit_filter.cu
-    points.cu
-    threshold.cu
-    apriltag_utils.cu
-    video_processor.cu)
+    src/apriltag_detect.cu 
+    src/apriltag_gpu.cu
+    src/cuda_frc971.cu
+    src/labeling_allegretti_2019_BKE.cu
+    src/line_fit_filter.cu
+    src/points.cu
+    src/threshold.cu
+    src/apriltag_utils.cu
+    src/video_processor.cu)
 
 # Add a library with the above source files
 add_library(apriltag_cuda ${CUDA_LIB_SOURCES})
@@ -218,14 +179,13 @@ include_directories(
     ${WPILIB_INSTALL_DIR}/include/ntcore
     ${WPILIB_INSTALL_DIR}/include/wpiutil
     ${SEASOCKS_INSTALL_DIR}/include
-    ${CMAKE_BINARY_DIR}/cpp-base64/install/include
     ${JSON_INSTALL_DIR}/include)
 
 # Add executable for OpenCV CUDA demo
-add_executable(opencv_cuda_demo opencv_cuda_demo.cu)
+add_executable(opencv_cuda_demo src/opencv_cuda_demo.cu)
 target_link_libraries(opencv_cuda_demo 
-    apriltag_cuda 
-    ${APRILTAG_INSTALL_DIR}/lib/libapriltag.so 
+    apriltag_cuda
+    ${APRILTAG_INSTALL_DIR}/lib/libapriltag.so
     ${OPENCV_INSTALL_DIR}/lib/libopencv_core.so
     ${OPENCV_INSTALL_DIR}/lib/libopencv_imgproc.so
     ${OPENCV_INSTALL_DIR}/lib/libopencv_highgui.so
@@ -234,7 +194,7 @@ target_link_libraries(opencv_cuda_demo
     glog::glog)
 
 # Add executable for visualize
-add_executable(visualize visualize.cu)
+add_executable(visualize src/visualize.cu)
 target_link_libraries(visualize
     apriltag_cuda
     ${APRILTAG_INSTALL_DIR}/lib/libapriltag.so
@@ -246,13 +206,13 @@ target_link_libraries(visualize
     glog::glog)
 
 # Add a network tables example.
-add_executable(ntexample ntexample.cpp)
+add_executable(ntexample src/ntexample.cpp)
 target_link_libraries(ntexample
     ${WPILIB_INSTALL_DIR}/lib/libntcore.so
     ${WPILIB_INSTALL_DIR}/lib/libwpiutil.so)
 
 # Add the test executable
-add_executable(gpu_detector_test gpu_detector_test.cu)
+add_executable(gpu_detector_test src/gpu_detector_test.cu)
 target_link_libraries(gpu_detector_test
     apriltag_cuda
     ${APRILTAG_INSTALL_DIR}/lib/libapriltag.so
@@ -264,7 +224,7 @@ target_link_libraries(gpu_detector_test
     glog::glog
     GTest::GTest)
 
-add_executable(ws_test ws_test.cpp)
+add_executable(ws_test src/ws_test.cpp)
 target_link_libraries(ws_test
     ${SEASOCKS_INSTALL_DIR}/lib/libseasocks.a
     ${OPENCV_INSTALL_DIR}/lib/libopencv_core.so
@@ -275,12 +235,11 @@ target_link_libraries(ws_test
     Threads::Threads
     ZLIB::ZLIB)
 
-add_executable(ws_server ws_server.cu)
+add_executable(ws_server src/ws_server.cu)
 target_link_libraries(ws_server
     apriltag_cuda
     ${APRILTAG_INSTALL_DIR}/lib/libapriltag.so
     ${SEASOCKS_INSTALL_DIR}/lib/libseasocks.a
-    ${CMAKE_BINARY_DIR}/cpp-base64/install/lib/libbase64.a
     ${OPENCV_INSTALL_DIR}/lib/libopencv_core.so
     ${OPENCV_INSTALL_DIR}/lib/libopencv_imgproc.so
     ${OPENCV_INSTALL_DIR}/lib/libopencv_highgui.so
@@ -292,6 +251,6 @@ target_link_libraries(ws_server
 
 # Add a custom target to format all source files
 add_custom_target(format_all
-	COMMAND clang-format -i -style=Google ${CMAKE_CURRENT_SOURCE_DIR}/*.cu ${CMAKE_CURRENT_SOURCE_DIR}/*.h ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+	COMMAND clang-format -i -style=Google ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cu ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
     COMMENT "Running clang-format on all source files"
 )
