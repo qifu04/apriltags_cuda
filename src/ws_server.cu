@@ -22,6 +22,8 @@
 
 extern "C" {
 #include "apriltag.h"
+#include "apriltag_pose.h"
+#include "common/zarray.h"
 }
 
 using json = nlohmann::json;
@@ -143,6 +145,15 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     dist.p2 = 0.001113;
     dist.k3 = 0.0;
 
+    // Setup the detection info struct for use down below.
+    apriltag_detection_info_t info;
+    info.tagsize =
+        0.175;  // Measured in meters, with a ruler, for tag family 36h11
+    info.fx = cam.fx;
+    info.fy = cam.fy;
+    info.cx = cam.cx;
+    info.cy = cam.cy;
+
     frc971::apriltag::GpuDetector detector(frame_width, frame_height, td, cam,
                                            dist);
 
@@ -175,6 +186,35 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 
       // Broadcast the image
       broadcast(buffer);
+
+      // Determine the pose of the tags.
+      if (zarray_size(detections) > 0) {
+        json detections_record;
+        detections_record["Detections"] = json::array();
+
+        for (int i = 0; i < zarray_size(detections); i++) {
+          json detection_record;
+
+          apriltag_detection_t* det;
+          zarray_get(const_cast<zarray_t*>(detections), i, &det);
+
+          // Setup the detection info struct for use down below.
+          info.det = det;
+
+          apriltag_pose_t pose;
+          double err = estimate_tag_pose(&info, &pose);
+
+          matd_print(pose.R, "%.3f ");
+          matd_print(pose.t, "%.3f ");
+          std::cout << "Pose Error: " << err << std::endl;
+
+          detection_record["id"] = det->id;
+          detection_record["hamming"] = det->hamming;
+          detection_record["pose_error"] = err;
+
+          // TODO: store pose in the json record.
+        }
+      }
     }
 
     // Clean up
