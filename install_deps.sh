@@ -28,9 +28,9 @@ install_llvm() {
 }
 
 
-sudo apt update -y && sudo apt upgrade -y
+sudo apt update -y
 sudo apt install -y wget build-essential cmake python3-dev python3-numpy libprotobuf-dev protobuf-compiler
-sudo apt install -y libgoogle-glog-dev libgtest-dev libssh-dev libxrandr-dev libxinerama-dev
+sudo apt install -y libgoogle-glog-dev libgtest-dev libssh-dev libxrandr-dev libxinerama-dev libstdc++-12-dev
 
 # Check if clang-17 is installed.
 if ! dpkg -l | grep clang-17; then
