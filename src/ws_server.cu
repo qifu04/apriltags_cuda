@@ -70,11 +70,30 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     }
   }
 
-  void broadcast(const std::vector<uint8_t>& data) {
-    server_->execute([this, data] {
+  void broadcastImage(const std::vector<uint8_t>& imageData) {
+    std::vector<uint8_t> message;
+    // Prefix for image messages (5 bytes)
+    const std::string prefix = "IMG::";
+    message.insert(message.end(), prefix.begin(), prefix.end());
+    message.insert(message.end(), imageData.begin(), imageData.end());
+
+    server_->execute([this, message] {
       std::lock_guard<std::mutex> lock(mutex_);
       for (auto client : clients_) {
-        client->send(data.data(), data.size());
+        client->send(message.data(), message.size());
+      }
+    });
+  }
+
+  void broadcastPoseData(const std::string& poseDataJson) {
+    std::string prefix = "POSE:";
+    std::string message = prefix + poseDataJson;
+    std::vector<uint8_t> messageBytes(message.begin(), message.end());
+
+    server_->execute([this, messageBytes] {
+      std::lock_guard<std::mutex> lock(mutex_);
+      for (auto client : clients_) {
+        client->send(messageBytes.data(), messageBytes.size());
       }
     });
   }
@@ -185,15 +204,16 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
       cv::imencode(".jpg", bgr_img, buffer);
 
       // Broadcast the image
-      broadcast(buffer);
+      broadcastImage(buffer);
 
       // Determine the pose of the tags.
       if (zarray_size(detections) > 0) {
         json detections_record;
-        detections_record["Detections"] = json::array();
+        detections_record["type"] = "pose_data";
+        detections_record["detections"] = json::array();
 
         for (int i = 0; i < zarray_size(detections); i++) {
-          json detection_record;
+          json record;
 
           apriltag_detection_t* det;
           zarray_get(const_cast<zarray_t*>(detections), i, &det);
@@ -208,12 +228,24 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
           matd_print(pose.t, "%.3f ");
           std::cout << "Pose Error: " << err << std::endl;
 
-          detection_record["id"] = det->id;
-          detection_record["hamming"] = det->hamming;
-          detection_record["pose_error"] = err;
+          record["id"] = det->id;
+          record["hamming"] = det->hamming;
+          record["pose_error"] = err;
 
-          // TODO: store pose in the json record.
+          // Store pose in the json record
+          record["rotation"] = {
+              {pose.R->data[0], pose.R->data[1], pose.R->data[2]},
+              {pose.R->data[3], pose.R->data[4], pose.R->data[5]},
+              {pose.R->data[6], pose.R->data[7], pose.R->data[8]}};
+          record["translation"] = {pose.t->data[0], pose.t->data[1],
+                                   pose.t->data[2]};
+
+          detections_record["detections"].push_back(record);
         }
+
+        // Send the pose data
+        std::string pose_json = detections_record.dump();
+        broadcastPoseData(pose_json);
       }
     }
 

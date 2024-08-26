@@ -3,10 +3,31 @@
 <head>
     <title>AprilTag Detection with Controls</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
     <style>
         #apriltag-image { max-width: 100%; height: auto; }
         .control { margin: 10px 0; }
+        #pose-data { font-family: Arial, sans-serif; }
+        .tag-detection {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+        }
+        .tag-detection h3 { margin-top: 0; }
+        .pose-matrix {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .pose-matrix div {
+            background-color: #eee;
+            padding: 5px;
+            text-align: center;
+        }
     </style>
+
 </head>
 <body>
     <h1>AprilTag Detection with Controls</h1>
@@ -28,6 +49,8 @@
         <label for="exposure">Exposure:</label>
         <input type="range" id="exposure" min="0" max="1000" value="500">
     </div>
+    <h2>Pose Data:</h2>
+    <div id="pose-data"></div>
 
     <script>
         const socket = io();
@@ -39,6 +62,33 @@
         socket.on('image', function(data) {
             document.getElementById('apriltag-image').src = 'data:image/jpeg;base64,' + data;
         });
+
+        socket.on('pose_data', function(data) {
+            const poseDataElement = document.getElementById('pose-data');
+            poseDataElement.innerHTML = formatPoseData(data);
+        });
+
+        function formatPoseData(data) {
+            let html = '';
+            data.detections.forEach(detection => {
+                html += `
+                    <div class="tag-detection">
+                        <h3>Tag ID: ${detection.id}</h3>
+                        <p>Hamming: ${detection.hamming}</p>
+                        <p>Pose Error: ${detection.pose_error.toFixed(4)}</p>
+                        <h4>Rotation Matrix:</h4>
+                        <div class="pose-matrix">
+                            ${detection.rotation.flat().map(val => `<div>${val.toFixed(4)}</div>`).join('')}
+                        </div>
+                        <h4>Translation Vector:</h4>
+                        <div class="pose-matrix">
+                            ${detection.translation.map(val => `<div>${val.toFixed(4)}</div>`).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            return html;
+        }
 
         function sendControl(type, value) {
             socket.emit('control', {type: type, value: value});
