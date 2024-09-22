@@ -87,7 +87,7 @@ ExternalProject_Add(
     PREFIX ${CMAKE_BINARY_DIR}/json
     GIT_REPOSITORY https://github.com/nlohmann/json
     GIT_TAG v3.11.3
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${JSON_INSTALL_DIR}
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${JSON_INSTALL_DIR} -DJSON_BuildTests=OFF
     BUILD_COMMAND make -j${NUM_PROCESSORS}
     INSTALL_COMMAND make install
 )
