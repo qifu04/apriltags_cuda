@@ -39,8 +39,8 @@ if ! dpkg -l | grep clang-17; then
 fi
 
 # Check if cuda-toolkit is installed
-if dpkg -l | grep -q cuda-toolkit; then
-	echo "cuda-toolkit is installed."
+if dpkg -l | grep -q cuda-toolkit-11-8; then
+	echo "cuda-toolkit 11-8 is installed."
 	exit 0
 fi
 
@@ -50,7 +50,7 @@ case $arch in
         echo "Installing cuda on x86"
         install_cuda_x86
         ;;
-    aarch64-jetson)
+    aarch64)
         echo "Installing cuda on jetson"
         install_cuda_jetson
         ;;
