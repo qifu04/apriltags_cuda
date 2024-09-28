@@ -15,10 +15,19 @@
 #include <opencv2/opencv.hpp>
 #include <set>
 #include <thread>
+#include <string>
+#include <vector>
+#include <span>
 
 #include "apriltag_gpu.h"
 #include "apriltag_utils.h"
 #include "opencv2/opencv.hpp"
+
+#include "DoubleArraySender.h"
+#include "DoubleValueSender.h"
+#include "IntegerValueSender.h"
+#include "BooleanValueSender.h"
+#include "IntegerArraySender.h"
 
 extern "C" {
 #include "apriltag.h"
@@ -208,6 +217,8 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 
       // Determine the pose of the tags.
       if (zarray_size(detections) > 0) {
+        std::vector<int64_t> tag_ids = {};
+        //std::vector<std::vector<double>> poses = {};
         json detections_record;
         detections_record["type"] = "pose_data";
         detections_record["detections"] = json::array();
@@ -223,14 +234,14 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 
           apriltag_pose_t pose;
           double err = estimate_tag_pose(&info, &pose);
-
           matd_print(pose.R, "%.3f ");
           matd_print(pose.t, "%.3f ");
+          //std::vector <double> pose_data = {pose.R, pose.t};
           std::cout << "Pose Error: " << err << std::endl;
 
-          record["id"] = det->id;
-          record["hamming"] = det->hamming;
-          record["pose_error"] = err;
+          detection_record["id"] = det->id;
+          detection_record["hamming"] = det->hamming;
+          detection_record["pose_error"] = err;
 
           // Store pose in the json record
           record["rotation"] = {
@@ -246,6 +257,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
         // Send the pose data
         std::string pose_json = detections_record.dump();
         broadcastPoseData(pose_json);
+        tagIDSender_.sendValue(tag_ids);
       }
     }
 
@@ -257,6 +269,9 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
   void stop() { running_ = false; }
 
  private:
+  IntegerArraySender tagIDSender_{"tag_id"};
+  //BooleanValueSender isConnectedSender_{"ORIN_CONNECTED"};
+  //DoubleArraySender poseSender_{"pose"};
   std::set<seasocks::WebSocket*> clients_;
   std::mutex mutex_;
   std::shared_ptr<seasocks::Server> server_;
@@ -276,6 +291,7 @@ int main(int argc, char* argv[]) {
   auto logger = std::make_shared<seasocks::PrintfLogger>();
   auto server = std::make_shared<seasocks::Server>(logger);
 
+  //isConnectedSender_.setDefaultValue(false);
   try {
     auto handler = std::make_shared<AprilTagHandler>(server);
     server->addWebSocketHandler("/ws", handler);
@@ -284,6 +300,7 @@ int main(int argc, char* argv[]) {
     server->serve("", 8080);
     handler->stop();
     handler->joinReadAndSendThread();
+    //isConnectedSender_.sendValue(true); //Is this the right place to put this?
   } catch (const std::exception& e) {
     LOG(ERROR) << e.what();
     return 1;
