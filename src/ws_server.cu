@@ -240,9 +240,9 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
           //std::vector <double> pose_data = {pose.R, pose.t};
           std::cout << "Pose Error: " << err << std::endl;
 
-          detection_record["id"] = det->id;
-          detection_record["hamming"] = det->hamming;
-          detection_record["pose_error"] = err;
+          record["id"] = det->id;
+          record["hamming"] = det->hamming;
+          record["pose_error"] = err;
 
           // Store pose in the json record
           record["rotation"] = {
