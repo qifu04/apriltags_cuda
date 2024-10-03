@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>AprilTag Detection with Controls and Pose Data</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
@@ -10,65 +11,80 @@
             margin: 0 auto;
             padding: 20px;
         }
+
         .container {
             display: flex;
             flex-wrap: wrap;
             gap: 20px;
         }
+
         .image-container {
             flex: 1;
             min-width: 300px;
         }
+
         #apriltag-image {
             max-width: 100%;
             height: auto;
             max-height: 400px;
             object-fit: contain;
         }
+
         .controls-container {
             flex: 1;
             min-width: 300px;
         }
+
         .control {
             margin-bottom: 15px;
         }
+
         #pose-data {
             margin-top: 20px;
         }
-        .tag-detection { 
-            border: 1px solid #ddd; 
-            padding: 10px; 
-            margin-bottom: 10px; 
+
+        .tag-detection {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
             background-color: #f9f9f9;
         }
+
         .tag-detection-header {
             display: flex;
             align-items: flex-start;
             gap: 20px;
         }
+
         .tag-info {
             flex: 0 0 auto;
-            width: 200px; /* Adjust as needed */
+            width: 200px;
+            /* Adjust as needed */
         }
+
         .tag-info h3 {
             margin-top: 0;
             margin-bottom: 5px;
         }
+
         .rotation-matrix {
             flex: 1;
         }
-        .pose-matrix { 
-            display: grid; 
+
+        .pose-matrix {
+            display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 2px;
             margin-bottom: 10px;
             font-size: 0.8em;
         }
+
         .pose-matrix div {
             background-color: #eee;
             padding: 3px;
             text-align: center;
         }
+
         .translation-vector {
             display: inline-flex;
             gap: 10px;
@@ -76,6 +92,7 @@
         }
     </style>
 </head>
+
 <body>
     <h1>AprilTag Detection with Controls and Pose Data</h1>
     <div class="container">
@@ -85,40 +102,64 @@
         <div class="controls-container">
             <div class="control">
                 <label>Exposure Mode:</label>
-                <input type="radio" id="auto-exposure" name="exposure-mode" value="auto" checked>
+                <input type="radio" id="auto-exposure" name="exposure-mode" value="0" checked>
                 <label for="auto-exposure">Auto</label>
-                <input type="radio" id="manual-exposure" name="exposure-mode" value="manual">
+                <input type="radio" id="manual-exposure" name="exposure-mode" value="1">
                 <label for="manual-exposure">Manual</label>
             </div>
             <div class="control">
                 <label for="brightness">Brightness:</label>
-                <input type="range" id="brightness" min="0" max="100" value="50">
+                <input type="range" id="brightness" min="-64" max="64" value="0">
             </div>
             <div class="control">
                 <label for="exposure">Exposure:</label>
-                <input type="range" id="exposure" min="0" max="100" value="50">
+                <input type="range" id="exposure" min="1" max="5000" value="157">
             </div>
         </div>
     </div>
     <h2>Pose Data:</h2>
     <div id="pose-data"></div>
-    
+
     <script>
         const socket = io();
-        
-        socket.on('connect', function() {
+
+        socket.on('connect', function () {
             console.log('Connected to server');
         });
-        
-        socket.on('image', function(data) {
+
+        socket.on('image', function (data) {
             document.getElementById('apriltag-image').src = 'data:image/jpeg;base64,' + data;
         });
-        
-        socket.on('pose_data', function(data) {
+
+        socket.on('pose_data', function (data) {
             const poseDataElement = document.getElementById('pose-data');
             poseDataElement.innerHTML = formatPoseData(data);
         });
-        
+
+        function sendControl(type, value) {
+            socket.emit('control', { type: type, value: value });
+        }
+
+        document.getElementById('brightness').oninput = function () {
+            sendControl('brightness', parseInt(this.value));
+        };
+
+        document.getElementById('exposure').oninput = function () {
+            sendControl('exposure', parseInt(this.value));
+        };
+
+        document.querySelectorAll('input[name="exposure-mode"]').forEach((radio) => {
+            radio.onchange = function () {
+                sendControl('exposure-mode', parseInt(this.value));
+                document.getElementById('exposure').disabled = (this.value === '0');
+                document.getElementById('brightness').disabled = (this.value === '0');
+            };
+        });
+
+        // Initial state
+        document.getElementById('exposure').disabled = true;
+        document.getElementById('brightness').disabled = true;
+
         function formatPoseData(data) {
             let html = '';
             data.detections.forEach(detection => {
@@ -146,8 +187,12 @@
             });
             return html;
         }
-        
-        // ... (rest of the JavaScript remains the same)
+
+        // Initial state
+        document.getElementById('exposure').disabled = true;
+        document.getElementById('brightness').disabled = true;
+
     </script>
 </body>
+
 </html>
