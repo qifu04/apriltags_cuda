@@ -258,15 +258,6 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
           networktables_pose_data.push_back(pose.t->data[0]);
           networktables_pose_data.push_back(pose.t->data[1]);
           networktables_pose_data.push_back(pose.t->data[2]);
-          networktables_pose_data.push_back(pose.R->data[0]);
-          networktables_pose_data.push_back(pose.R->data[1]);
-          networktables_pose_data.push_back(pose.R->data[2]);
-          networktables_pose_data.push_back(pose.R->data[3]);
-          networktables_pose_data.push_back(pose.R->data[4]);
-          networktables_pose_data.push_back(pose.R->data[5]);
-          networktables_pose_data.push_back(pose.R->data[6]);
-          networktables_pose_data.push_back(pose.R->data[7]);
-          networktables_pose_data.push_back(pose.R->data[8]);
         }
 
         // Send the pose data
