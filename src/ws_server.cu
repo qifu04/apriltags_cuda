@@ -8,6 +8,7 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -30,6 +31,7 @@ using json = nlohmann::json;
 using namespace std;
 
 DEFINE_int32(camera_idx, 0, "Camera index");
+DEFINE_string(cal_file, "", "path name to calibration file");
 
 enum ExposureMode { AUTO = 0, MANUAL = 1 };
 
@@ -268,10 +270,41 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
   std::thread read_thread_;
 };
 
+bool parsecal_file(const std::string& cal_filepath,
+                   frc971::apriltag::CameraMatrix* cam,
+                   frc971::apriltag::DistCoeffs* dist) {
+  std::ifstream f(FLAGS_cal_file);
+  json data = json::parse(f);
+  if (data.contains("matrix")) {
+    // Setup Camera Matrix
+    cam->fx = std::cout << data["matrix"][0][0] << " ";
+    cam->fy = std::cout << data["matrix"][1][1] << " ";
+    cam->cx = std::cout << data["matrix"][2][0] << " ";
+    cam->cy = std::cout << data["matrix"][2][1]
+                        << " "
+
+                           // Setup Distortion Coefficients
+                           dist->k1 = 0.059238;
+    dist->k2 = -0.075154;
+    dist->p1 = -0.003801;
+    dist->p2 = 0.001113;
+    dist->k3 = 0.0;
+
+    data["matrix"]
+  }
+  if (data.contains("disto")) {
+    data["disto"]
+  }
+}
+
 int main(int argc, char* argv[]) {
   google::InitGoogleLogging(argv[0]);
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   google::SetVLOGLevel("*", FLAGS_v);
+  if (!std::filesystem::exists(FLAGS_cal_file)) {
+    LOG(ERROR) << "calibration file does not exist";
+    return 1;
+  }
 
   auto logger = std::make_shared<seasocks::PrintfLogger>();
   auto server = std::make_shared<seasocks::Server>(logger);
