@@ -155,3 +155,4 @@ Flask App: ![Alt](/res/flaskapp.png "Flask App Screenshot")
 
 * You can adjust between manual and auto exposure.  When manual exposure is selected you can adjust the exposure and brightness of the image.  If you hold an apriltag of type 36h11 it should be detected by the system and outlines of the detection will be shown.
 
+[![Documentation Status](https://readthedocs.org/projects/team766-orin/badge/?version=latest)](https://team766-orin.readthedocs.io/en/latest/?badge=latest)
