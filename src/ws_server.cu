@@ -122,8 +122,8 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     // https://docs.opencv.org/4.x/d9/d0c/group__calib3d.html
     cam->fx = data["matrix"][0][0];
     cam->fy = data["matrix"][1][1];
-    cam->cx = data["matrix"][2][0];
-    cam->cy = data["matrix"][2][1];
+    cam->cx = data["matrix"][0][2];
+    cam->cy = data["matrix"][1][2];
 
     // Setup Distortion Coefficients
     // OpenCV writes them out in the order specified here:
@@ -133,6 +133,19 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     dist->p1 = data["disto"][0][2];
     dist->p2 = data["disto"][0][3];
     dist->k3 = data["disto"][0][4];
+
+    // Some debug print statements
+    std::cout << "Loaded calibration matrix:" << std::endl;
+    std::cout << "cam.fx: " << cam->fx << std::endl;
+    std::cout << "cam.fy: " << cam->fy << std::endl;
+    std::cout << "cam.cx: " << cam->cx << std::endl;
+    std::cout << "cam.cy: " << cam->cy << std::endl << std::endl;
+    std::cout << "Loaded distortion coefficients: " << std::endl;
+    std::cout << "dist.k1: " << dist->k1 << std::endl;
+    std::cout << "dist.k2: " << dist->k2 << std::endl;
+    std::cout << "dist.p1: " << dist->p1 << std::endl;
+    std::cout << "dist.p2: " << dist->p2 << std::endl;
+    std::cout << "dist.k3: " << dist->k3 << std::endl << std::endl;
 
     return true;
   }
