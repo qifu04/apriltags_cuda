@@ -8,6 +8,8 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -36,9 +38,9 @@ extern "C" {
 }
 
 using json = nlohmann::json;
-using namespace std;
 
 DEFINE_int32(camera_idx, 0, "Camera index");
+DEFINE_string(cal_file, "", "path name to calibration file");
 
 enum ExposureMode { AUTO = 0, MANUAL = 1 };
 
@@ -107,8 +109,60 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     });
   }
 
-  void startReadAndSendThread(const int camera_idx) {
-    read_thread_ = std::thread(&AprilTagHandler::readAndSend, this, camera_idx);
+  bool parsecal_file(const std::string& cal_filepath,
+                     frc971::apriltag::CameraMatrix* cam,
+                     frc971::apriltag::DistCoeffs* dist) {
+    std::ifstream f(FLAGS_cal_file);
+    json data = json::parse(f);
+
+    // Ensure the keys that we are expecting to find are actually
+    // present in the file.
+    if (!data.contains("matrix")) {
+      LOG(ERROR) << "key \"matrix\" not found in calibration file.";
+      return false;
+    }
+    if (!data.contains("disto")) {
+      LOG(ERROR) << "key \"disto\" not found in calibration file.";
+      return false;
+    }
+
+    // Setup Camera Matrix
+    // Intrinsic Matrices are explained here:
+    // https://docs.opencv.org/4.x/d9/d0c/group__calib3d.html
+    cam->fx = data["matrix"][0][0];
+    cam->fy = data["matrix"][1][1];
+    cam->cx = data["matrix"][0][2];
+    cam->cy = data["matrix"][1][2];
+
+    // Setup Distortion Coefficients
+    // OpenCV writes them out in the order specified here:
+    // https://docs.opencv.org/4.x/d9/d0c/group__calib3d.html
+    dist->k1 = data["disto"][0][0];
+    dist->k2 = data["disto"][0][1];
+    dist->p1 = data["disto"][0][2];
+    dist->p2 = data["disto"][0][3];
+    dist->k3 = data["disto"][0][4];
+
+    // Some debug print statements
+    std::cout << "Loaded calibration matrix:" << std::endl;
+    std::cout << "cam.fx: " << cam->fx << std::endl;
+    std::cout << "cam.fy: " << cam->fy << std::endl;
+    std::cout << "cam.cx: " << cam->cx << std::endl;
+    std::cout << "cam.cy: " << cam->cy << std::endl << std::endl;
+    std::cout << "Loaded distortion coefficients: " << std::endl;
+    std::cout << "dist.k1: " << dist->k1 << std::endl;
+    std::cout << "dist.k2: " << dist->k2 << std::endl;
+    std::cout << "dist.p1: " << dist->p1 << std::endl;
+    std::cout << "dist.p2: " << dist->p2 << std::endl;
+    std::cout << "dist.k3: " << dist->k3 << std::endl << std::endl;
+
+    return true;
+  }
+
+  void startReadAndSendThread(const int camera_idx,
+                              const std::string& cal_file) {
+    read_thread_ =
+        std::thread(&AprilTagHandler::readAndSend, this, camera_idx, cal_file);
   }
 
   void joinReadAndSendThread() {
@@ -117,7 +171,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     }
   }
 
-  void readAndSend(const int camera_idx) {
+  void readAndSend(const int camera_idx, const std::string& cal_file) {
     LOG(INFO) << "Enabling video capture";
     cv::VideoCapture cap(camera_idx, cv::CAP_V4L);
     if (!cap.isOpened()) {
@@ -146,9 +200,6 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     apriltag_family_t* tf = nullptr;
     apriltag_detector_t* td = nullptr;
     const char* tag_family = "tag36h11";
-    frc971::apriltag::CameraMatrix cam;
-    frc971::apriltag::DistCoeffs dist;
-
     setup_tag_family(&tf, tag_family);
     td = apriltag_detector_create();
     apriltag_detector_add_family(td, tf);
@@ -160,18 +211,13 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     td->refine_edges = true;
     td->wp = workerpool_create(4);
 
-    // Setup Camera Matrix
-    cam.fx = 905.495617;
-    cam.fy = 907.909470;
-    cam.cx = 609.916016;
-    cam.cy = 352.682645;
-
-    // Setup Distortion Coefficients
-    dist.k1 = 0.059238;
-    dist.k2 = -0.075154;
-    dist.p1 = -0.003801;
-    dist.p2 = 0.001113;
-    dist.k3 = 0.0;
+    // Read Camera Matrix and Distortion Coeffs from file.
+    frc971::apriltag::CameraMatrix cam;
+    frc971::apriltag::DistCoeffs dist;
+    if (!parsecal_file(cal_file, &cam, &dist)) {
+      LOG(ERROR) << "Unable to read parameters from cal file " << cal_file;
+      return;
+    }
 
     // Setup the detection info struct for use down below.
     apriltag_detection_info_t info;
@@ -290,8 +336,21 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 
 int main(int argc, char* argv[]) {
   google::InitGoogleLogging(argv[0]);
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
   google::SetVLOGLevel("*", FLAGS_v);
+
+  // Check number of args passed in.
+  if (argc != 5) {
+    LOG(ERROR)
+        << "Usage: ws_server -camera_idx <index> -cal_file <path to cal file";
+    return 1;
+  }
+
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
+
+  if (!std::filesystem::exists(FLAGS_cal_file)) {
+    LOG(ERROR) << "calibration file does not exist: " << FLAGS_cal_file;
+    return 1;
+  }
 
   auto logger = std::make_shared<seasocks::PrintfLogger>();
   auto server = std::make_shared<seasocks::Server>(logger);
@@ -299,7 +358,7 @@ int main(int argc, char* argv[]) {
     auto handler = std::make_shared<AprilTagHandler>(server);
     server->addWebSocketHandler("/ws", handler);
 
-    handler->startReadAndSendThread(FLAGS_camera_idx);
+    handler->startReadAndSendThread(FLAGS_camera_idx, FLAGS_cal_file);
     server->serve("", 8080);
     handler->stop();
     handler->joinReadAndSendThread();
