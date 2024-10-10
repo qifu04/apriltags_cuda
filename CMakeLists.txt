@@ -210,21 +210,6 @@ target_link_libraries(visualize
     ${OPENCV_INSTALL_DIR}/lib/libopencv_imgcodecs.so
     glog::glog)
 
-# Add a network tables example.
-#add_executable(ntexample src/ntexample.cpp)
-#target_link_libraries(ntexample
-#    ${WPILIB_INSTALL_DIR}/lib/libntcore.so
-#    ${WPILIB_INSTALL_DIR}/lib/libwpiutil.so)
-
-#add_executable(DoubleValueSender src/DoubleValueSender.cpp)
-#target_link_libraries(DoubleValueSender
-#    ${WPILIB_INSTALL_DIR}/lib/libntcore.so
-#    ${WPILIB_INSTALL_DIR}/lib/libwpiutil.so)
-
-#add_executable(DoubleArraySender src/DoubleArraySender.cpp)
-#target_link_libraries(DoubleArraySender
-#    ${WPILIB_INSTALL_DIR}/lib/libntcore.so
-#    ${WPILIB_INSTALL_DIR}/lib/libwpiutil.so)
 
 
 # Add the test executable
