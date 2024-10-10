@@ -14,27 +14,15 @@ A few reasons:
 
 2. Run the install_deps script as follows to install the dependencies: `sudo ./install_deps.sh`.  This script will try to detect whether cuda is installed or not and will try to install it for you. 
 
-3. Determine your cuda compute capability of your GPU as follows: `nvidia-smi --query-gpu compute_cap --format=csv` .  On embedded platforms like the Orin, `nvidia-smi` does not exist.  You need to run deviceQuery to find the compute capability.  You can build deviceQuery as follows:
+3. For builds on the Orin platform, the compute capability is 8.7.  For other non-embedded platforms you can determine your cuda compute capability of your GPU as follows: `nvidia-smi --query-gpu compute_cap --format=csv` .  On embedded platforms like the Orin, `nvidia-smi` does not exist.
 
+4. Build the code as follows.  Use the compute capability determined above, e.g. 8.7 translates to 87 for CMake. For clang compilation use:
 ```bash
-# On the orin command line
-cd /usr/local/cuda/samples/1_Utilities/deviceQuery
-sudo make ./deviceQuery
-./deviceQuery
-```
-
-4. Build the code as follows.  Use the compute capability determined above, e.g. 7.5 translates to 75 for CMake. For clang compilation use:
-```bash
-cmake -B build -DCMAKE_CUDA_COMPILER=clang++-17 -DCMAKE_CXX_COMPILER=clang++-17 -DCMAKE_CUDA_ARCHITECTURES=75
+cmake -B build -DCMAKE_CUDA_COMPILER=clang++-17 -DCMAKE_CXX_COMPILER=clang++-17 -DCMAKE_CUDA_ARCHITECTURES=87 -DNUM_PROCESSORS=2
 cmake --build build
 ```
+If you are on a computer with lots of cores and RAM you could omit the DNUM_PROCESSORS directive and it will use all available cores for the build.
 
-For nvcc compilation use (not recommended but should work):
-
-```bash
-cmake -B build -DCMAKE_CUDA_COMPILER=nvcc -DCMAKE_CXX_COMPILER=clang++-17 -DCMAKE_CUDA_ARCHITECTURES=75
-cmake --build build
-```
 
 Leaving the CMAKE_BUILD_TYPE undefined will results in a Release build.  If you want a debug build add `-DCMAKE_BUILD_TYPE=Debug` to the command lines above.
 
@@ -155,4 +143,3 @@ Flask App: ![Alt](/res/flaskapp.png "Flask App Screenshot")
 
 * You can adjust between manual and auto exposure.  When manual exposure is selected you can adjust the exposure and brightness of the image.  If you hold an apriltag of type 36h11 it should be detected by the system and outlines of the detection will be shown.
 
-[![Documentation Status](https://readthedocs.org/projects/team766-orin/badge/?version=latest)](https://team766-orin.readthedocs.io/en/latest/?badge=latest)
