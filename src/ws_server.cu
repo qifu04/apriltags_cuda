@@ -277,7 +277,6 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 
  private:
   IntegerArraySender tagIDSender_{"tag_id"};
-  //BooleanValueSender isConnectedSender_{"ORIN_CONNECTED"};
   DoubleArraySender poseSender_{"raw_pose"};
   std::set<seasocks::WebSocket*> clients_;
   std::mutex mutex_;
@@ -297,8 +296,6 @@ int main(int argc, char* argv[]) {
 
   auto logger = std::make_shared<seasocks::PrintfLogger>();
   auto server = std::make_shared<seasocks::Server>(logger);
-
-  //isConnectedSender_.setDefaultValue(false);
   try {
     auto handler = std::make_shared<AprilTagHandler>(server);
     server->addWebSocketHandler("/ws", handler);
@@ -307,7 +304,6 @@ int main(int argc, char* argv[]) {
     server->serve("", 8080);
     handler->stop();
     handler->joinReadAndSendThread();
-    //isConnectedSender_.sendValue(true); //Is this the right place to put this?
   } catch (const std::exception& e) {
     LOG(ERROR) << e.what();
     return 1;
