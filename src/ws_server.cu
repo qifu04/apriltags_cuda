@@ -15,10 +15,19 @@
 #include <opencv2/opencv.hpp>
 #include <set>
 #include <thread>
+#include <string>
+#include <vector>
+#include <span>
 
 #include "apriltag_gpu.h"
 #include "apriltag_utils.h"
 #include "opencv2/opencv.hpp"
+
+#include "DoubleArraySender.h"
+#include "DoubleValueSender.h"
+#include "IntegerValueSender.h"
+#include "BooleanValueSender.h"
+#include "IntegerArraySender.h"
 
 extern "C" {
 #include "apriltag.h"
@@ -207,6 +216,9 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 
       // Determine the pose of the tags.
       if (zarray_size(detections) > 0) {
+        std::vector<int64_t> tag_ids = {};
+        std::vector<double> networktables_pose_data = {};
+        //std::vector<std::vector<double>> poses = {};
         json detections_record;
         detections_record["type"] = "pose_data";
         detections_record["detections"] = json::array();
@@ -222,9 +234,9 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 
           apriltag_pose_t pose;
           double err = estimate_tag_pose(&info, &pose);
-
           matd_print(pose.R, "%.3f ");
           matd_print(pose.t, "%.3f ");
+          //std::vector <double> pose_data = {pose.R, pose.t};
           std::cout << "Pose Error: " << err << std::endl;
 
           record["id"] = det->id;
@@ -240,11 +252,18 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
                                    pose.t->data[2]};
 
           detections_record["detections"].push_back(record);
+          tag_ids.push_back(det->id);
+
+          networktables_pose_data.push_back(pose.t->data[0]);
+          networktables_pose_data.push_back(pose.t->data[1]);
+          networktables_pose_data.push_back(pose.t->data[2]);
         }
 
         // Send the pose data
         std::string pose_json = detections_record.dump();
         broadcastPoseData(pose_json);
+        tagIDSender_.sendValue(tag_ids);
+        poseSender_.sendValue(networktables_pose_data);
       }
     }
 
@@ -256,6 +275,8 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
   void stop() { running_ = false; }
 
  private:
+  IntegerArraySender tagIDSender_{"tag_id"};
+  DoubleArraySender poseSender_{"raw_pose"};
   std::set<seasocks::WebSocket*> clients_;
   std::mutex mutex_;
   std::shared_ptr<seasocks::Server> server_;
@@ -274,7 +295,6 @@ int main(int argc, char* argv[]) {
 
   auto logger = std::make_shared<seasocks::PrintfLogger>();
   auto server = std::make_shared<seasocks::Server>(logger);
-
   try {
     auto handler = std::make_shared<AprilTagHandler>(server);
     server->addWebSocketHandler("/ws", handler);

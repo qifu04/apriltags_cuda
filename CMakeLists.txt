@@ -161,6 +161,11 @@ set(CUDA_LIB_SOURCES
     src/points.cu
     src/threshold.cu
     src/apriltag_utils.cu
+    src/DoubleArraySender.cpp
+    src/DoubleValueSender.cpp
+    src/IntegerValueSender.cpp
+    src/BooleanValueSender.cpp
+    src/IntegerArraySender.cpp
     src/video_processor.cu)
 
 # Add a library with the above source files
@@ -205,11 +210,7 @@ target_link_libraries(visualize
     ${OPENCV_INSTALL_DIR}/lib/libopencv_imgcodecs.so
     glog::glog)
 
-# Add a network tables example.
-add_executable(ntexample src/ntexample.cpp)
-target_link_libraries(ntexample
-    ${WPILIB_INSTALL_DIR}/lib/libntcore.so
-    ${WPILIB_INSTALL_DIR}/lib/libwpiutil.so)
+
 
 # Add the test executable
 add_executable(gpu_detector_test src/gpu_detector_test.cu)
@@ -245,6 +246,8 @@ target_link_libraries(ws_server
     ${OPENCV_INSTALL_DIR}/lib/libopencv_highgui.so
     ${OPENCV_INSTALL_DIR}/lib/libopencv_videoio.so
     ${OPENCV_INSTALL_DIR}/lib/libopencv_imgcodecs.so
+    ${WPILIB_INSTALL_DIR}/lib/libntcore.so
+    ${WPILIB_INSTALL_DIR}/lib/libwpiutil.so
     glog::glog
     Threads::Threads
     ZLIB::ZLIB)
