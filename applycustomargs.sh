@@ -1,1 +1,1 @@
-sudo mv args /apps/AprilTags/args
+sudo cp args /apps/AprilTags/args
