@@ -143,3 +143,5 @@ Flask App: ![Alt](/res/flaskapp.png "Flask App Screenshot")
 
 * You can adjust between manual and auto exposure.  When manual exposure is selected you can adjust the exposure and brightness of the image.  If you hold an apriltag of type 36h11 it should be detected by the system and outlines of the detection will be shown.
 
+Information for how data is sent to and from the Orin on NetworkTables is stored on the following Google Doc <a> https://docs.google.com/document/d/1zhl0dlSLXOld302rhOQrhItLp2thuDD308Gv3yvkHMY/edit?usp=sharing</a>
+
