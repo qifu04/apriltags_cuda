@@ -1,26 +1,26 @@
 #ifndef INTEGERARRAYSENDER_H
 #define INTEGERARRAYSENDER_H
 
-#include "networktables/NetworkTable.h"
-#include "networktables/NetworkTableInstance.h"
-#include "networktables/IntegerArrayTopic.h"
-
+#include <span>
 #include <string>
 #include <vector>
-#include <span>
+
+#include "networktables/IntegerArrayTopic.h"
+#include "networktables/NetworkTable.h"
+#include "networktables/NetworkTableInstance.h"
 
 class IntegerArraySender {
-  private:
-    nt::NetworkTableInstance inst_;
-    nt::IntegerArrayPublisher publisher_;
-  
-  public:
-    // Constructor declaration
-    IntegerArraySender(std::string key);
+ private:
+  nt::NetworkTableInstance inst_;
+  nt::IntegerArrayPublisher publisher_;
 
-    // Method declarations
-    void sendValue(std::span<const int64_t> value);
-    void setDefaultValue(std::span<const int64_t>value);
+ public:
+  // Constructor declaration
+  IntegerArraySender(std::string key);
+
+  // Method declarations
+  void sendValue(std::span<const int64_t> value);
+  void setDefaultValue(std::span<const int64_t> value);
 };
 
 #endif
