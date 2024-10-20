@@ -29,6 +29,7 @@
 #include "apriltag_gpu.h"
 #include "apriltag_utils.h"
 #include "opencv2/opencv.hpp"
+#include "cameraexception.h"
 
 extern "C" {
 #include "apriltag.h"
@@ -42,13 +43,6 @@ DEFINE_int32(camera_idx, 0, "Camera index");
 DEFINE_string(cal_file, "", "path name to calibration file");
 
 enum ExposureMode { AUTO = 0, MANUAL = 1 };
-
-class CameraException : public std::exception {
- public:
-  const char* what() const noexcept override {
-    return "Error: No camera detected.";
-  }
-};
 
 class AprilTagHandler : public seasocks::WebSocket::Handler {
  public:
