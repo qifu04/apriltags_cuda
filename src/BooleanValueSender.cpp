@@ -1,13 +1,14 @@
 #include "BooleanValueSender.h"
+
 #include "NetworkTablesConfig.h"
 
 /*
-Right now, the table is /SmartDashboard so we can visualize the values sent from the Orin.
-Later, this should be changed to a new table, such as /Orin or /Vision, to avoid populating the SmartDashboard with unnecessary values
+Right now, the table is /SmartDashboard so we can visualize the values sent from
+the Orin. Later, this should be changed to a new table, such as /Orin or
+/Vision, to avoid populating the SmartDashboard with unnecessary values
 */
 
-
-BooleanValueSender::BooleanValueSender(std::string key){
+BooleanValueSender::BooleanValueSender(std::string key) {
   inst_ = nt::NetworkTableInstance::GetDefault();
   inst_.SetServer(TABLE_ADDRESS);
   inst_.StartClient4(TABLE_ADDRESS);
@@ -16,15 +17,13 @@ BooleanValueSender::BooleanValueSender(std::string key){
   publisher_ = topic.Publish();
 }
 
-void BooleanValueSender::sendValue(bool value){
-  publisher_.Set(value);
-}
+void BooleanValueSender::sendValue(bool value) { publisher_.Set(value); }
 
-void BooleanValueSender::setDefaultValue(bool value){
+void BooleanValueSender::setDefaultValue(bool value) {
   publisher_.SetDefault(value);
 }
 
-//Class use example
+// Class use example
 
 // int main(){
 //   BooleanValueSender sender("NVIDIA ORIN TEST");

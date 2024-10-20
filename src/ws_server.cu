@@ -16,20 +16,20 @@
 #include <nlohmann/json.hpp>
 #include <opencv2/opencv.hpp>
 #include <set>
-#include <thread>
-#include <string>
-#include <vector>
 #include <span>
+#include <string>
+#include <thread>
+#include <vector>
 
+#include "BooleanValueSender.h"
+#include "DoubleArraySender.h"
+#include "DoubleValueSender.h"
+#include "IntegerArraySender.h"
+#include "IntegerValueSender.h"
 #include "apriltag_gpu.h"
 #include "apriltag_utils.h"
 #include "opencv2/opencv.hpp"
-
-#include "DoubleArraySender.h"
-#include "DoubleValueSender.h"
-#include "IntegerValueSender.h"
-#include "BooleanValueSender.h"
-#include "IntegerArraySender.h"
+#include "cameraexception.h"
 
 extern "C" {
 #include "apriltag.h"
@@ -172,14 +172,27 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
   }
 
   void readAndSend(const int camera_idx, const std::string& cal_file) {
-    LOG(INFO) << "Enabling video capture";
-    cv::VideoCapture cap(camera_idx, cv::CAP_V4L);
-    if (!cap.isOpened()) {
-      LOG(ERROR) << "Couldn't open video capture device";
-      return;
+    std::cout << "Enabling video capture" << std::endl;
+    bool camera_started = false;
+    cv::VideoCapture cap;
+    while (!camera_started) {
+      try {
+        cap.open(camera_idx, cv::CAP_V4L);
+        if (cap.isOpened()) {
+          camera_started = true;
+          std::cout << "Camera started successfully on index " << camera_idx
+                    << std::endl;
+        } else {
+          throw CameraException();
+        }
+      } catch (const CameraException& e) {
+        std::cout << "Couldn't open video capture device: " << e.what()
+                  << std::endl;
+        std::cout << "Retrying in 1 second ...";
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+      }
     }
     cap.set(cv::CAP_PROP_CONVERT_RGB, false);
-    // cap.set(CAP_PROP_MODE, CV_CAP_MODE_YUYV);
     cap.set(cv::CAP_PROP_FRAME_WIDTH, 1920);
     cap.set(cv::CAP_PROP_FRAME_HEIGHT, 1080);
 
@@ -215,7 +228,8 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     frc971::apriltag::CameraMatrix cam;
     frc971::apriltag::DistCoeffs dist;
     if (!parsecal_file(cal_file, &cam, &dist)) {
-      LOG(ERROR) << "Unable to read parameters from cal file " << cal_file;
+      std::cout << "Unable to read parameters from cal file " << cal_file
+                << std::endl;
       return;
     }
 
@@ -244,75 +258,79 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
         }
       }
 
-      cap >> yuyv_img;
-      cv::cvtColor(yuyv_img, bgr_img, cv::COLOR_YUV2BGR_YUYV);
+      try {
+        cap >> yuyv_img;
+        cv::cvtColor(yuyv_img, bgr_img, cv::COLOR_YUV2BGR_YUYV);
 
-      frc971::apriltag::GpuDetector detector(frame_width, frame_height, td, cam,
-                                             dist);
-      detector.Detect(yuyv_img.data);
-      const zarray_t* detections = detector.Detections();
-      draw_detection_outlines(bgr_img, const_cast<zarray_t*>(detections));
+        frc971::apriltag::GpuDetector detector(frame_width, frame_height, td,
+                                               cam, dist);
+        detector.Detect(yuyv_img.data);
+        const zarray_t* detections = detector.Detections();
+        draw_detection_outlines(bgr_img, const_cast<zarray_t*>(detections));
 
-      // Encode the image to JPEG
-      std::vector<uchar> buffer;
-      cv::imencode(".jpg", bgr_img, buffer);
+        // Encode the image to JPEG
+        std::vector<uchar> buffer;
+        cv::imencode(".jpg", bgr_img, buffer);
 
-      // Broadcast the image
-      broadcastImage(buffer);
+        // Broadcast the image
+        broadcastImage(buffer);
 
-      // Determine the pose of the tags.
-      if (zarray_size(detections) > 0) {
-        std::vector<int64_t> tag_ids = {};
-        std::vector<double> networktables_pose_data = {};
-        //std::vector<std::vector<double>> poses = {};
-        json detections_record;
-        detections_record["type"] = "pose_data";
-        detections_record["detections"] = json::array();
+        // Determine the pose of the tags.
+        if (zarray_size(detections) > 0) {
+          std::vector<int64_t> tag_ids = {};
+          std::vector<double> networktables_pose_data = {};
+          // std::vector<std::vector<double>> poses = {};
+          json detections_record;
+          detections_record["type"] = "pose_data";
+          detections_record["detections"] = json::array();
 
-        for (int i = 0; i < zarray_size(detections); i++) {
-          json record;
+          for (int i = 0; i < zarray_size(detections); i++) {
+            json record;
 
-          apriltag_detection_t* det;
-          zarray_get(const_cast<zarray_t*>(detections), i, &det);
+            apriltag_detection_t* det;
+            zarray_get(const_cast<zarray_t*>(detections), i, &det);
 
-          // Setup the detection info struct for use down below.
-          info.det = det;
+            // Setup the detection info struct for use down below.
+            info.det = det;
 
-          apriltag_pose_t pose;
-          double err = estimate_tag_pose(&info, &pose);
-          matd_print(pose.R, "%.3f ");
-          matd_print(pose.t, "%.3f ");
-          //std::vector <double> pose_data = {pose.R, pose.t};
-          std::cout << "Pose Error: " << err << std::endl;
+            apriltag_pose_t pose;
+            double err = estimate_tag_pose(&info, &pose);
+            matd_print(pose.R, "%.3f ");
+            matd_print(pose.t, "%.3f ");
+            // std::vector <double> pose_data = {pose.R, pose.t};
+            std::cout << "Pose Error: " << err << std::endl;
 
-          record["id"] = det->id;
-          record["hamming"] = det->hamming;
-          record["pose_error"] = err;
+            record["id"] = det->id;
+            record["hamming"] = det->hamming;
+            record["pose_error"] = err;
 
-          // Store pose in the json record
-          record["rotation"] = {
-              {pose.R->data[0], pose.R->data[1], pose.R->data[2]},
-              {pose.R->data[3], pose.R->data[4], pose.R->data[5]},
-              {pose.R->data[6], pose.R->data[7], pose.R->data[8]}};
-          record["translation"] = {pose.t->data[0], pose.t->data[1],
-                                   pose.t->data[2]};
+            // Store pose in the json record
+            record["rotation"] = {
+                {pose.R->data[0], pose.R->data[1], pose.R->data[2]},
+                {pose.R->data[3], pose.R->data[4], pose.R->data[5]},
+                {pose.R->data[6], pose.R->data[7], pose.R->data[8]}};
+            record["translation"] = {pose.t->data[0], pose.t->data[1],
+                                     pose.t->data[2]};
 
-          detections_record["detections"].push_back(record);
-          tag_ids.push_back(det->id);
+            detections_record["detections"].push_back(record);
+            tag_ids.push_back(det->id);
 
-          networktables_pose_data.push_back(pose.t->data[0]);
-          networktables_pose_data.push_back(pose.t->data[1]);
-          networktables_pose_data.push_back(pose.t->data[2]);
+            networktables_pose_data.push_back(pose.t->data[0]);
+            networktables_pose_data.push_back(pose.t->data[1]);
+            networktables_pose_data.push_back(pose.t->data[2]);
+          }
+
+          // Send the pose data
+          std::string pose_json = detections_record.dump();
+          broadcastPoseData(pose_json);
+          tagIDSender_.sendValue(tag_ids);
+          poseSender_.sendValue(networktables_pose_data);
         }
-
-        // Send the pose data
-        std::string pose_json = detections_record.dump();
-        broadcastPoseData(pose_json);
-        tagIDSender_.sendValue(tag_ids);
-        poseSender_.sendValue(networktables_pose_data);
+      } catch (const std::exception& ex) {
+        std::cout << "Encounted exception " << ex.what() << std::endl;
+        std::cout << "Continuing." << std::endl;
       }
     }
-
     // Clean up
     apriltag_detector_destroy(td);
     teardown_tag_family(&tf, tag_family);
