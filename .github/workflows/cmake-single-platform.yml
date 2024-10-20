@@ -74,7 +74,7 @@ jobs:
       run: |
         docker run --rm -v ${{ github.workspace }}:/workspace apriltags_cuda:latest \
           bash -c "cd /workspace && \
-          git config --system --add safe.directory build/* && \
+          git config --system --add safe.directory build/OpenCV && \
           cmake -B build -DCMAKE_CUDA_COMPILER=clang++-17 \
           -DCMAKE_CXX_COMPILER=clang++-17 -DCMAKE_CUDA_ARCHITECTURES=52 \
           -DNUM_PROCESSORS=2 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} && cmake --build build"
