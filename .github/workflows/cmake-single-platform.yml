@@ -79,7 +79,7 @@ jobs:
           git config --system --add safe.directory /workspace/build/wpilib/src/wpilib-build/_deps/googletest-src && \
           git config --system --add safe.directory /workspace/build/wpilib/src/wpilib-build/_deps/apriltaglib-src && \
           git config --system --add safe.directory /workspace/build/seasocks/src/seasocks && \
-          git config --system --add safe.directory /workspace/build/CCCL/src/CCCL && \
+          git config --system --add safe.directory /workspace/build/cccl/src/CCCL && \
           git config --system --add safe.directory /workspace/build/json/src/json && \
           git config --system --add safe.directory /workspace/build/apriltag/src/apriltag && \
           cmake -B build -DCMAKE_CUDA_COMPILER=clang++-17 \
