@@ -62,6 +62,14 @@ jobs:
         rm -rf /tmp/.buildx-cache
         mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
+    - name: Restore build cache
+      uses: actions/cache@v4
+      with:
+          path: build
+          key: ${{ runner.os }}-build-${{ hashFiles('**/*.cpp', '**/*.h') }}
+          restore-keys: |
+            ${{ runner.os }}-build-
+
     - name: Build project
       run: |
         docker run --rm -v ${{ github.workspace }}:/workspace apriltags_cuda:latest \
