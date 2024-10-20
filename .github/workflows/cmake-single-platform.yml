@@ -75,6 +75,11 @@ jobs:
         docker run --rm -v ${{ github.workspace }}:/workspace apriltags_cuda:latest \
           bash -c "cd /workspace && \
           git config --system --add safe.directory /workspace/build/OpenCV/src/OpenCV && \
+          git config --system --add safe.directory /workspace/build/wpilib/src/wpilib && \
+          git config --system --add safe.directory /workspace/build/seasocks/src/seasocks && \
+          git config --system --add safe.directory /workspace/build/CCCL/src/CCCL && \
+          git config --system --add safe.directory /workspace/build/json/src/json && \
+          git config --system --add safe.directory /workspace/build/apriltag/src/apriltag && \
           cmake -B build -DCMAKE_CUDA_COMPILER=clang++-17 \
           -DCMAKE_CXX_COMPILER=clang++-17 -DCMAKE_CUDA_ARCHITECTURES=52 \
           -DNUM_PROCESSORS=2 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} && cmake --build build"
