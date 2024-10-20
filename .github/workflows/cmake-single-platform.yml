@@ -77,6 +77,7 @@ jobs:
           git config --system --add safe.directory /workspace/build/OpenCV/src/OpenCV && \
           git config --system --add safe.directory /workspace/build/wpilib/src/wpilib && \
           git config --system --add safe.directory /workspace/build/wpilib/src/wpilib-build/_deps/googletest-src && \
+          git config --system --add safe.directory /workspace/build/wpilib/src/wpilib-build/_deps/apriltaglib-src && \
           git config --system --add safe.directory /workspace/build/seasocks/src/seasocks && \
           git config --system --add safe.directory /workspace/build/CCCL/src/CCCL && \
           git config --system --add safe.directory /workspace/build/json/src/json && \
