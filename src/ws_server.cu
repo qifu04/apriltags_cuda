@@ -260,6 +260,8 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     info.cx = cam.cx;
     info.cy = cam.cy;
 
+    int frame_counter = 0;
+
     cv::Mat bgr_img, yuyv_img;
     while (running_) {
       // Handle settings changes.
@@ -278,6 +280,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 
       try {
         cap >> yuyv_img;
+        frame_counter++;
         if (rotate_img_) {
           rotateImage(&yuyv_img, 180.0);
         }
@@ -289,12 +292,14 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
         const zarray_t* detections = detector.Detections();
         draw_detection_outlines(bgr_img, const_cast<zarray_t*>(detections));
 
-        // Encode the image to JPEG
-        std::vector<uchar> buffer;
-        cv::imencode(".jpg", bgr_img, buffer);
-
-        // Broadcast the image
-        broadcastImage(buffer);
+        // Broadcast the image to websocket clients.
+        if (frame_counter % 10 == 0) {
+          // Encode the image to JPEG
+          std::vector<uchar> buffer;
+          cv::imencode(".jpg", bgr_img, buffer);
+          broadcastImage(buffer);
+          frame_counter = 0;
+        }
 
         // Determine the pose of the tags.
         if (zarray_size(detections) > 0) {
