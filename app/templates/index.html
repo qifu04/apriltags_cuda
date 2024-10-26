@@ -115,6 +115,10 @@
                 <label for="exposure">Exposure:</label>
                 <input type="range" id="exposure" min="1" max="5000" value="157">
             </div>
+            <div class="control">
+                <input type="checkbox" id="rotate-image" name="rotate-image">
+                <label for="rotate-image">Rotate Image</label>
+            </div>
         </div>
     </div>
     <h2>Pose Data:</h2>
@@ -155,6 +159,10 @@
                 document.getElementById('brightness').disabled = (this.value === '0');
             };
         });
+
+        document.getElementById('rotate-image').onchange = function() {
+            sendControl('rotate', this.checked);
+        };
 
         // Initial state
         document.getElementById('exposure').disabled = true;
