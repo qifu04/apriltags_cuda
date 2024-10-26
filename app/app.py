@@ -1,3 +1,4 @@
+import argparse
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 import websocket
@@ -39,10 +40,10 @@ def on_open(ws):
     print("WebSocket connection opened")
 
 
-def connect_to_cpp_server():
+def connect_to_cpp_server(wsaddr: str):
     global ws
     ws = websocket.WebSocketApp(
-        "ws://localhost:8080/ws",
+        wsaddr,
         on_message=on_message,
         on_error=on_error,
         on_close=on_close,
@@ -76,8 +77,17 @@ def handle_control(data):
 
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--wshost", required=False,
+        type=str, default='localhost',
+        help="ip address of websocket host, not including the port number")
+    args = parser.parse_args()
+
+    wsaddr = f'ws://{args.wshost}:8080/ws'
+
     # Start WebSocket client in a separate thread
-    threading.Thread(target=connect_to_cpp_server, daemon=True).start()
+    threading.Thread(target=connect_to_cpp_server, args=(wsaddr,), daemon=True).start()
 
     # Run Flask-SocketIO app
     socketio.run(app, debug=True, host="0.0.0.0", port=5000, allow_unsafe_werkzeug=True)
