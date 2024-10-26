@@ -14,6 +14,7 @@
 #include <memory>
 #include <mutex>
 #include <nlohmann/json.hpp>
+#include <opencv2/imgproc.hpp>
 #include <opencv2/opencv.hpp>
 #include <set>
 #include <span>
@@ -28,8 +29,8 @@
 #include "IntegerValueSender.h"
 #include "apriltag_gpu.h"
 #include "apriltag_utils.h"
-#include "opencv2/opencv.hpp"
 #include "cameraexception.h"
+#include "opencv2/opencv.hpp"
 
 extern "C" {
 #include "apriltag.h"
@@ -73,6 +74,10 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
       }
       if (j["type"] == "exposure-mode") {
         exposure_mode_ = j["value"].get<int>();
+        settings_changed_ = true;
+      }
+      if (j["type"] == "rotate") {
+        rotate_img_ = j["value"].get<bool>();
         settings_changed_ = true;
       }
 
@@ -157,6 +162,19 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     std::cout << "dist.k3: " << dist->k3 << std::endl << std::endl;
 
     return true;
+  }
+
+  void rotateImage(cv::Mat* yuyvimg, const float angle) {
+    // Since the input image is yuyv it is convenient to convert
+    // to bgr, then rotate, then convert back.  If we don't
+    // convert to bgr then the colors get swapped after rotation.
+    cv::Mat bgr;
+    cv::cvtColor(*yuyvimg, bgr, cv::COLOR_YUV2BGR_YUYV);
+    cv::Point2f center((bgr.cols - 1) / 2.0, (bgr.rows - 1) / 2.0);
+    cv::Mat matRotation = cv::getRotationMatrix2D(center, angle, 1.0);
+    cv::Mat rotatedImage;
+    cv::warpAffine(bgr, rotatedImage, matRotation, bgr.size());
+    cv::cvtColor(rotatedImage, *yuyvimg, cv::COLOR_BGR2YUV_YUYV);
   }
 
   void startReadAndSendThread(const int camera_idx,
@@ -260,6 +278,9 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 
       try {
         cap >> yuyv_img;
+        if (rotate_img_) {
+          rotateImage(&yuyv_img, 180.0);
+        }
         cv::cvtColor(yuyv_img, bgr_img, cv::COLOR_YUV2BGR_YUYV);
 
         frc971::apriltag::GpuDetector detector(frame_width, frame_height, td,
@@ -349,6 +370,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
   std::atomic<int> exposure_{50};
   std::atomic<int> exposure_mode_{0};
   std::atomic<bool> settings_changed_{false};
+  std::atomic<bool> rotate_img_{false};
   std::thread read_thread_;
 };
 
