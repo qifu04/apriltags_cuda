@@ -189,6 +189,18 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     }
   }
 
+  void printCameraSettings(const cv::VideoCapture& cap) {
+    int frame_width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
+    int frame_height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
+    int frame_rate = cap.get(cv::CAP_PROP_FPS);
+
+    std::cout << "  " << frame_width << "x" << frame_height << " @"
+              << frame_rate << "FPS" << std::endl;
+
+    std::cout << " format is: " << cap.get(cv::CAP_PROP_FORMAT) << std::endl;
+
+  }
+
   void readAndSend(const int camera_idx, const std::string& cal_file) {
     std::cout << "Enabling video capture" << std::endl;
     bool camera_started = false;
@@ -214,12 +226,8 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     cap.set(cv::CAP_PROP_FRAME_WIDTH, 1920);
     cap.set(cv::CAP_PROP_FRAME_HEIGHT, 1080);
 
-    int frame_width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
-    int frame_height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
-    int frame_rate = cap.get(cv::CAP_PROP_FPS);
-
-    std::cout << "  " << frame_width << "x" << frame_height << " @"
-              << frame_rate << "FPS" << std::endl;
+    printCameraSettings(cap);
+    break;
 
     std::cout << "AUTO Exposure: " << cap.get(cv::CAP_PROP_AUTO_EXPOSURE)
               << std::endl;
