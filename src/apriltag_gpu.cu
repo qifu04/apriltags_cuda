@@ -206,6 +206,18 @@ GpuDetector::~GpuDetector() {
   zarray_destroy(poly0_);
 }
 
+GpuDetector::ReinitializeDetections() {
+  //Convenience method to reinitialize the detections_ array
+  //so we don't have to call the destructor to free the memory.
+  for (int i = 0; i < zarray_size(detections_); ++i) {
+    apriltag_detection_t *det;
+    zarray_get(detections_, i, &det);
+    apriltag_detection_destroy(det);
+  }
+  zarray_clear(detections_);
+  zarray_ensure_capacity(detections_, kMaxBlobs);
+}
+
 namespace {
 
 // Computes a massive image of 4x QuadBoundaryPoint per pixel with a

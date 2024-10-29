@@ -92,6 +92,8 @@ class GpuDetector {
 
   const zarray_t *Detections() const { return detections_; }
 
+  void ReinitializeDetections();
+
   // Debug methods to expose internal state for testing.
   void CopyGrayTo(uint8_t *output) const {
     gray_image_device_.MemcpyTo(output);
