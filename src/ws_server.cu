@@ -261,11 +261,15 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     }
 
     auto gpucreatestart = std::chrono::high_resolution_clock::now();
-    frc971::apriltag::GpuDetector detector(frame_width, frame_height, td, cam, dist);
+    frc971::apriltag::GpuDetector detector(frame_width, frame_height, td, cam,
+                                           dist);
     auto gpucreateend = std::chrono::high_resolution_clock::now();
 
-    auto gpucreateduration = std::chrono::duration_cast<std::chrono::milliseconds>(gpucreateend - gpucreatestart);
-    std::cout << "GPU Detector Create Time: " << gpucreateduration.count() << " ms" << std::endl;
+    auto gpucreateduration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(gpucreateend -
+                                                              gpucreatestart);
+    std::cout << "GPU Detector Create Time: " << gpucreateduration.count()
+              << " ms" << std::endl;
 
     // Setup the detection info struct for use down below.
     apriltag_detection_info_t info;
@@ -368,12 +372,19 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
           tagSender_.sendValue(networktables_pose_data);
 
           auto overallend = std::chrono::high_resolution_clock::now();
-          auto overallduration = std::chrono::duration_cast<std::chrono::milliseconds>(overallend - overallstart);
-          auto gpudetectduration = std::chrono::duration_cast<std::chrono::milliseconds>(gpudetectend - gpudetectstart);
-          std::cout << "Total Elapsed time: " << overallduration.count() << " ms" << std::endl;
-          //std::cout << "GPU Elapsed time: " << gpuoverallduration.count() << " ms" << std::endl;
-          //std::cout << "GPU Detector Create time: " << gpucreateduration.count() << " ms" << std::endl;
-          std::cout << "GPU Detect time: " << gpudetectduration.count() << " ms" << std::endl;
+          auto overallduration =
+              std::chrono::duration_cast<std::chrono::milliseconds>(
+                  overallend - overallstart);
+          auto gpudetectduration =
+              std::chrono::duration_cast<std::chrono::milliseconds>(
+                  gpudetectend - gpudetectstart);
+          std::cout << "Total Elapsed time: " << overallduration.count()
+                    << " ms" << std::endl;
+          // std::cout << "GPU Elapsed time: " << gpuoverallduration.count() <<
+          // " ms" << std::endl; std::cout << "GPU Detector Create time: " <<
+          // gpucreateduration.count() << " ms" << std::endl;
+          std::cout << "GPU Detect time: " << gpudetectduration.count() << " ms"
+                    << std::endl;
 
           detector.ReinitializeDetections();
         }
