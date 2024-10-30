@@ -349,6 +349,10 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
           std::string pose_json = detections_record.dump();
           broadcastPoseData(pose_json);
           tagSender_.sendValue(networktables_pose_data);
+        } else {
+          // no tag, so send empty data.
+          std::vector<double> networktables_pose_data = {};
+          tagSender_.sendValue(networktables_pose_data);
         }
       } catch (const std::exception& ex) {
         std::cout << "Encounted exception " << ex.what() << std::endl;
