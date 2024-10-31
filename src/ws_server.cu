@@ -417,12 +417,13 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
   std::atomic<bool> rotate_img_{false};
   std::thread read_thread_;
   json empty_detections_record;
-  empty_detections_record["EMPTY"] = true;
 };
 
 int main(int argc, char* argv[]) {
   google::InitGoogleLogging(argv[0]);
   google::SetVLOGLevel("*", FLAGS_v);
+  empty_detections_record["type"] = "pose_data";
+  empty_detections_record["EMPTY"] = "true";
 
   // Check number of args passed in.
   if (argc != 5) {
