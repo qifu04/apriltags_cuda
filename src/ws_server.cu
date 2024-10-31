@@ -164,17 +164,13 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     return true;
   }
 
-  void rotateImage(cv::Mat* yuyvimg, const float angle) {
-    // Since the input image is yuyv it is convenient to convert
-    // to bgr, then rotate, then convert back.  If we don't
-    // convert to bgr then the colors get swapped after rotation.
-    cv::Mat bgr;
-    cv::cvtColor(*yuyvimg, bgr, cv::COLOR_YUV2BGR_YUYV);
-    cv::Point2f center((bgr.cols - 1) / 2.0, (bgr.rows - 1) / 2.0);
+  // TODO: Implement a faster version of this method!
+  void rotateImage(cv::Mat* bgr_img, const float angle) {
+    cv::Point2f center((bgr_img->cols - 1) / 2.0, (bgr_img->rows - 1) / 2.0);
     cv::Mat matRotation = cv::getRotationMatrix2D(center, angle, 1.0);
     cv::Mat rotatedImage;
-    cv::warpAffine(bgr, rotatedImage, matRotation, bgr.size());
-    cv::cvtColor(rotatedImage, *yuyvimg, cv::COLOR_BGR2YUV_YUYV);
+    cv::warpAffine(*bgr_img, rotatedImage, matRotation, bgr_img->size());
+    *bgr_img = rotatedImage.clone();
   }
 
   void startReadAndSendThread(const int camera_idx,
@@ -187,6 +183,23 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     if (read_thread_.joinable()) {
       read_thread_.join();
     }
+  }
+
+  void printCameraSettings(const cv::VideoCapture& cap) {
+    int frame_width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
+    int frame_height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
+    int frame_rate = cap.get(cv::CAP_PROP_FPS);
+
+    std::cout << "  " << frame_width << "x" << frame_height << " @"
+              << frame_rate << "FPS" << std::endl;
+
+    std::cout << " format is: " << cap.get(cv::CAP_PROP_FORMAT) << std::endl;
+
+    std::cout << "AUTO Exposure: " << cap.get(cv::CAP_PROP_AUTO_EXPOSURE)
+              << std::endl;
+    std::cout << "Brightness: " << cap.get(cv::CAP_PROP_BRIGHTNESS)
+              << std::endl;
+    std::cout << "Contrast: " << cap.get(cv::CAP_PROP_CONTRAST) << std::endl;
   }
 
   void readAndSend(const int camera_idx, const std::string& cal_file) {
@@ -210,22 +223,18 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
         std::this_thread::sleep_for(std::chrono::seconds(1));
       }
     }
-    cap.set(cv::CAP_PROP_CONVERT_RGB, false);
-    cap.set(cv::CAP_PROP_FRAME_WIDTH, 1920);
-    cap.set(cv::CAP_PROP_FRAME_HEIGHT, 1080);
+
+    // Set video mode, resolution and frame rate.
+    int fourcc = cv::VideoWriter::fourcc('M', 'J', 'P', 'G');
+    cap.set(cv::CAP_PROP_FOURCC, fourcc);
+    cap.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
+    cap.set(cv::CAP_PROP_FRAME_HEIGHT, 800);
+    cap.set(cv::CAP_PROP_FPS, 30);
+    cap.set(cv::CAP_PROP_CONVERT_RGB, true);
 
     int frame_width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
     int frame_height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
-    int frame_rate = cap.get(cv::CAP_PROP_FPS);
-
-    std::cout << "  " << frame_width << "x" << frame_height << " @"
-              << frame_rate << "FPS" << std::endl;
-
-    std::cout << "AUTO Exposure: " << cap.get(cv::CAP_PROP_AUTO_EXPOSURE)
-              << std::endl;
-    std::cout << "Brightness: " << cap.get(cv::CAP_PROP_BRIGHTNESS)
-              << std::endl;
-    std::cout << "Contrast: " << cap.get(cv::CAP_PROP_CONTRAST) << std::endl;
+    printCameraSettings(cap);
 
     // Setup the apriltag detector.
     apriltag_family_t* tf = nullptr;
@@ -250,6 +259,17 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
                 << std::endl;
       return;
     }
+
+    auto gpucreatestart = std::chrono::high_resolution_clock::now();
+    frc971::apriltag::GpuDetector detector(frame_width, frame_height, td, cam,
+                                           dist);
+    auto gpucreateend = std::chrono::high_resolution_clock::now();
+
+    auto gpucreateduration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(gpucreateend -
+                                                              gpucreatestart);
+    std::cout << "GPU Detector Create Time: " << gpucreateduration.count()
+              << " ms" << std::endl;
 
     // Setup the detection info struct for use down below.
     apriltag_detection_info_t info;
@@ -279,21 +299,22 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
       }
 
       try {
-        cap >> yuyv_img;
+        cap >> bgr_img;
         frame_counter++;
-        if (rotate_img_) {
-          rotateImage(&yuyv_img, 180.0);
-        }
-        cv::cvtColor(yuyv_img, bgr_img, cv::COLOR_YUV2BGR_YUYV);
 
-        frc971::apriltag::GpuDetector detector(frame_width, frame_height, td,
-                                               cam, dist);
+        auto overallstart = std::chrono::high_resolution_clock::now();
+        if (rotate_img_) {
+          rotateImage(&bgr_img, 180.0);
+        }
+        cv::cvtColor(bgr_img, yuyv_img, cv::COLOR_BGR2YUV_YUYV);
+        auto gpudetectstart = std::chrono::high_resolution_clock::now();
         detector.Detect(yuyv_img.data);
+        auto gpudetectend = std::chrono::high_resolution_clock::now();
         const zarray_t* detections = detector.Detections();
         draw_detection_outlines(bgr_img, const_cast<zarray_t*>(detections));
 
         // Broadcast the image to websocket clients.
-        if (frame_counter % 10 == 0) {
+        if (frame_counter % 50 == 0) {
           // Encode the image to JPEG
           std::vector<uchar> buffer;
           cv::imencode(".jpg", bgr_img, buffer);
@@ -349,6 +370,23 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
           std::string pose_json = detections_record.dump();
           broadcastPoseData(pose_json);
           tagSender_.sendValue(networktables_pose_data);
+
+          auto overallend = std::chrono::high_resolution_clock::now();
+          auto overallduration =
+              std::chrono::duration_cast<std::chrono::milliseconds>(
+                  overallend - overallstart);
+          auto gpudetectduration =
+              std::chrono::duration_cast<std::chrono::milliseconds>(
+                  gpudetectend - gpudetectstart);
+          std::cout << "Total Elapsed time: " << overallduration.count()
+                    << " ms" << std::endl;
+          // std::cout << "GPU Elapsed time: " << gpuoverallduration.count() <<
+          // " ms" << std::endl; std::cout << "GPU Detector Create time: " <<
+          // gpucreateduration.count() << " ms" << std::endl;
+          std::cout << "GPU Detect time: " << gpudetectduration.count() << " ms"
+                    << std::endl;
+
+          detector.ReinitializeDetections();
         } else {
           // no tag, so send empty data.
           std::vector<double> networktables_pose_data = {};
