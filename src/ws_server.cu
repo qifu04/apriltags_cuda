@@ -324,6 +324,8 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
         std::vector<double> networktables_pose_data = {};
 
         std::string pose_json = "";
+        empty_detections_record["type"] = "pose_data";
+        empty_detections_record["EMPTY"] = "true";
         pose_json = empty_detections_record.dump();
         // Determine the pose of the tags.
         if (zarray_size(detections) > 0) {
@@ -422,8 +424,6 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 int main(int argc, char* argv[]) {
   google::InitGoogleLogging(argv[0]);
   google::SetVLOGLevel("*", FLAGS_v);
-  empty_detections_record["type"] = "pose_data";
-  empty_detections_record["EMPTY"] = "true";
 
   // Check number of args passed in.
   if (argc != 5) {
