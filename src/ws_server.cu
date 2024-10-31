@@ -321,10 +321,11 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
           broadcastImage(buffer);
           frame_counter = 0;
         }
-
+        std::vector<double> networktables_pose_data = {};
+        std::string pose_json = "EMPTY";
         // Determine the pose of the tags.
         if (zarray_size(detections) > 0) {
-          std::vector<double> networktables_pose_data = {};
+          
           // std::vector<std::vector<double>> poses = {};
           json detections_record;
           detections_record["type"] = "pose_data";
@@ -367,9 +368,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
           }
 
           // Send the pose data
-          std::string pose_json = detections_record.dump();
-          broadcastPoseData(pose_json);
-          tagSender_.sendValue(networktables_pose_data);
+          pose_json = detections_record.dump();
 
           auto overallend = std::chrono::high_resolution_clock::now();
           auto overallduration =
@@ -387,11 +386,10 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
                     << std::endl;
 
           detector.ReinitializeDetections();
-        } else {
-          // no tag, so send empty data.
-          std::vector<double> networktables_pose_data = {};
-          tagSender_.sendValue(networktables_pose_data);
         }
+        broadcastPoseData(pose_json);
+        tagSender_.sendValue(networktables_pose_data);
+        
       } catch (const std::exception& ex) {
         std::cout << "Encounted exception " << ex.what() << std::endl;
         std::cout << "Continuing." << std::endl;
