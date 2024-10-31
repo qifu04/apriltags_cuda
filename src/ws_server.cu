@@ -322,7 +322,9 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
           frame_counter = 0;
         }
         std::vector<double> networktables_pose_data = {};
-        std::string pose_json = "EMPTY";
+
+        std::string pose_json = "";
+        pose_json = empty_detections_record.dump();
         // Determine the pose of the tags.
         if (zarray_size(detections) > 0) {
           
@@ -414,6 +416,8 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
   std::atomic<bool> settings_changed_{false};
   std::atomic<bool> rotate_img_{false};
   std::thread read_thread_;
+  json empty_detections_record;
+  empty_detections_record["EMPTY"] = true;
 };
 
 int main(int argc, char* argv[]) {
