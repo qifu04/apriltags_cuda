@@ -169,6 +169,32 @@
         document.getElementById('brightness').disabled = true;
 
         function formatPoseData(data) {
+
+            if (data.EMPTY == "true"){
+                let toReturn = '';
+                toReturn += `
+                    <div class="tag-detection">
+                        <div class="tag-detection-header">
+                            <div class="tag-info">
+                                <h3>No Tag Found</h3>
+                                <p>No Tag Found</p>
+                                <p>No Tag Found</p>
+                            </div>
+                            <div class="rotation-matrix">
+                                <h4>Rotation Matrix:</h4>
+                                <div class="pose-matrix">
+                                    No Tag Found
+                                </div>
+                            </div>
+                        </div>
+                        <h4>Translation Vector:</h4>
+                        <div class="translation-vector">
+                            No Tag Found
+                        </div>
+                    </div>
+                `;
+                return toReturn;
+            }
             let html = '';
             data.detections.forEach(detection => {
                 html += `
