@@ -322,7 +322,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
           frame_counter = 0;
         }
         std::vector<double> networktables_pose_data = {};
-
+        json empty_detections_record;
         std::string pose_json = "";
         empty_detections_record["type"] = "pose_data";
         empty_detections_record["EMPTY"] = "true";
@@ -418,7 +418,6 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
   std::atomic<bool> settings_changed_{false};
   std::atomic<bool> rotate_img_{false};
   std::thread read_thread_;
-  json empty_detections_record;
 };
 
 int main(int argc, char* argv[]) {
