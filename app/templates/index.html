@@ -11,6 +11,25 @@
             margin: 0 auto;
             padding: 20px;
         }
+        .slider {
+            width: 300px; /* Adjust this value to change the slider width */
+            height: 8px; /* Adjust this for track thickness */
+        }
+            /* Style the thumb (the movable part of the slider) */
+        .slider::-webkit-slider-thumb {
+            width: 20px; /* Adjust the thumb width */
+            height: 20px; /* Adjust the thumb height */
+            background-color: #4CAF50;
+            border-radius: 50%; /* Makes it circular */
+            cursor: pointer;
+        }
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background-color: #4CAF50;
+            border-radius: 50%;
+            cursor: pointer;
+        }
 
         .container {
             display: flex;
@@ -109,11 +128,11 @@
             </div>
             <div class="control">
                 <label for="brightness">Brightness:</label>
-                <input type="range" id="brightness" min="-64" max="64" value="0">
+                <input type="range" id="brightness" min="-64" max="64" value="0" class="slider">
             </div>
             <div class="control">
                 <label for="exposure">Exposure:</label>
-                <input type="range" id="exposure" min="1" max="5000" value="157">
+                <input type="range" id="exposure" min="1" max="5000" value="157" class="slider">
             </div>
             <div class="control">
                 <input type="checkbox" id="rotate-image" name="rotate-image">
