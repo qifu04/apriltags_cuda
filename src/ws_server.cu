@@ -329,7 +329,6 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
         pose_json = empty_detections_record.dump();
         // Determine the pose of the tags.
         if (zarray_size(detections) > 0) {
-          
           // std::vector<std::vector<double>> poses = {};
           json detections_record;
           detections_record["type"] = "pose_data";
@@ -393,7 +392,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
         }
         broadcastPoseData(pose_json);
         tagSender_.sendValue(networktables_pose_data);
-        
+
       } catch (const std::exception& ex) {
         std::cout << "Encounted exception " << ex.what() << std::endl;
         std::cout << "Continuing." << std::endl;
