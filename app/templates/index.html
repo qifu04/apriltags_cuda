@@ -177,27 +177,27 @@
         };
 
         document.getElementById('incrementBrightnessUp').onclick = function () {
-            var previousBrightness = document.getElementById('brightness').value;
-            sendControl('brightness', parseInt(previousBrightness) + 1);
-            document.getElementById('brightness').setAttribute("value", parseInt(previousBrightness) + 1);
+            const slider = document.getElementById('brightness');
+            slider.value = parseInt(slider.value) + 1;
+            sendControl('brightness', parseInt(slider.value));
         };
 
         document.getElementById('incrementBrightnessDown').onclick = function () {
-            var previousBrightness = document.getElementById('brightness').value;
-            sendControl('brightness', parseInt(previousBrightness) - 1);
-            document.getElementById('brightness').setAttribute("value", parseInt(previousBrightness) - 1);
+            const slider = document.getElementById('brightness');
+            slider.value = parseInt(slider.value) - 1;
+            sendControl('brightness', parseInt(slider.value));
         };
 
         document.getElementById('incrementExposureUp').onclick = function () {
-            var previousExposure = document.getElementById('exposure').value;
-            sendControl('exposure', parseInt(previousExposure) + 3);
-            document.getElementById('exposure').setAttribute("value", parseInt(previousExposure) + 3);
+            const slider = document.getElementById('exposure');
+            slider.value = parseInt(slider.value) + 3;
+            sendControl('exposure', parseInt(slider.value));
         };
 
         document.getElementById('incrementExposureDown').onclick = function () {
-            var previousExposure = document.getElementById('exposure').value;
-            sendControl('exposure', parseInt(previousExposure) - 3);
-            document.getElementById('exposure').setAttribute("value", parseInt(previousExposure) - 3);
+            const slider = document.getElementById('exposure');
+            slider.value = parseInt(slider.value) - 3;
+            sendControl('exposure', parseInt(slider.value));
         };
 
         document.getElementById('exposure').oninput = function () {
