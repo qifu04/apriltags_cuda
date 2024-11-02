@@ -131,13 +131,22 @@
                 <input type="range" id="brightness" min="-64" max="64" value="0" class="slider">
             </div>
             <div class="control">
+                <button id="incrementBrightnessUp"> +1 Brightness </button>
+                <button id="incrementBrightnessDown"> -1 Brightness </button>
+            </div>
+            <div class="control">
                 <label for="exposure">Exposure:</label>
                 <input type="range" id="exposure" min="1" max="5000" value="157" class="slider">
+            </div>
+            <div class="control">
+                <button id="incrementExposureUp"> +3 Exposure </button>
+                <button id="incrementExposureDown"> -3 Exposure </button>
             </div>
             <div class="control">
                 <input type="checkbox" id="rotate-image" name="rotate-image">
                 <label for="rotate-image">Rotate Image</label>
             </div>
+
         </div>
     </div>
     <h2>Pose Data:</h2>
@@ -165,6 +174,30 @@
 
         document.getElementById('brightness').oninput = function () {
             sendControl('brightness', parseInt(this.value));
+        };
+
+        document.getElementById('incrementBrightnessUp').onclick = function () {
+            var previousBrightness = document.getElementById('brightness').value;
+            sendControl('brightness', parseInt(previousBrightness) + 1);
+            document.getElementById('brightness').setAttribute("value", parseInt(previousBrightness) + 1);
+        };
+
+        document.getElementById('incrementBrightnessDown').onclick = function () {
+            var previousBrightness = document.getElementById('brightness').value;
+            sendControl('brightness', parseInt(previousBrightness) - 1);
+            document.getElementById('brightness').setAttribute("value", parseInt(previousBrightness) - 1);
+        };
+
+        document.getElementById('incrementExposureUp').onclick = function () {
+            var previousExposure = document.getElementById('exposure').value;
+            sendControl('exposure', parseInt(previousExposure) + 3);
+            document.getElementById('exposure').setAttribute("value", parseInt(previousExposure) + 3);
+        };
+
+        document.getElementById('incrementExposureDown').onclick = function () {
+            var previousExposure = document.getElementById('exposure').value;
+            sendControl('exposure', parseInt(previousExposure) - 3);
+            document.getElementById('exposure').setAttribute("value", parseInt(previousExposure) - 3);
         };
 
         document.getElementById('exposure').oninput = function () {
