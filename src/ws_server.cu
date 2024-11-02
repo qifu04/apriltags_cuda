@@ -42,6 +42,8 @@ using json = nlohmann::json;
 
 DEFINE_int32(camera_idx, 0, "Camera index");
 DEFINE_string(cal_file, "", "path name to calibration file");
+DEFINE_bool(rotate_img, true,
+            "Rotates image by 180 degrees prior to detecting apriltags");
 
 enum ExposureMode { AUTO = 0, MANUAL = 1 };
 
@@ -77,7 +79,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
         settings_changed_ = true;
       }
       if (j["type"] == "rotate") {
-        rotate_img_ = j["value"].get<bool>();
+        gui_rotate_img_ = j["value"].get<bool>();
         settings_changed_ = true;
       }
 
@@ -173,10 +175,10 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     *bgr_img = rotatedImage.clone();
   }
 
-  void startReadAndSendThread(const int camera_idx,
-                              const std::string& cal_file) {
-    read_thread_ =
-        std::thread(&AprilTagHandler::readAndSend, this, camera_idx, cal_file);
+  void startReadAndSendThread(const int camera_idx, const std::string& cal_file,
+                              const bool rotate_img) {
+    read_thread_ = std::thread(&AprilTagHandler::readAndSend, this, camera_idx,
+                               cal_file, rotate_img);
   }
 
   void joinReadAndSendThread() {
@@ -202,7 +204,8 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     std::cout << "Contrast: " << cap.get(cv::CAP_PROP_CONTRAST) << std::endl;
   }
 
-  void readAndSend(const int camera_idx, const std::string& cal_file) {
+  void readAndSend(const int camera_idx, const std::string& cal_file,
+                   const bool rotate_img) {
     std::cout << "Enabling video capture" << std::endl;
     bool camera_started = false;
     cv::VideoCapture cap;
@@ -280,8 +283,12 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     info.cx = cam.cx;
     info.cy = cam.cy;
 
-    int frame_counter = 0;
+    // Set the value of the gui rotate image variable to the value
+    // that is passed in on the command line.  The user can change it
+    // later on from the gui.
+    gui_rotate_img_ = rotate_img;
 
+    int frame_counter = 0;
     cv::Mat bgr_img, yuyv_img;
     while (running_) {
       // Handle settings changes.
@@ -303,7 +310,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
         frame_counter++;
 
         auto overallstart = std::chrono::high_resolution_clock::now();
-        if (rotate_img_) {
+        if (gui_rotate_img_) {
           rotateImage(&bgr_img, 180.0);
         }
         cv::cvtColor(bgr_img, yuyv_img, cv::COLOR_BGR2YUV_YUYV);
@@ -415,7 +422,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
   std::atomic<int> exposure_{50};
   std::atomic<int> exposure_mode_{0};
   std::atomic<bool> settings_changed_{false};
-  std::atomic<bool> rotate_img_{false};
+  std::atomic<bool> gui_rotate_img_{false};
   std::thread read_thread_;
 };
 
@@ -443,7 +450,9 @@ int main(int argc, char* argv[]) {
     auto handler = std::make_shared<AprilTagHandler>(server);
     server->addWebSocketHandler("/ws", handler);
 
-    handler->startReadAndSendThread(FLAGS_camera_idx, FLAGS_cal_file);
+    handler
+        ->startReadAndSendThread(FLAGS_camera_idx, FLAGS_cal_file,
+                                 FLAGS_rotate_img);
     server->serve("", 8080);
     handler->stop();
     handler->joinReadAndSendThread();
