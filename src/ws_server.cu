@@ -174,7 +174,12 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     cv::warpAffine(*bgr_img, rotatedImage, matRotation, bgr_img->size());
     *bgr_img = rotatedImage.clone();
   }
-
+  void flip180(cv::Mat* bgr_img){
+    cv::flip(*bgr_img, *bgr_img, 0);
+  }
+  void flip90(cv::Mat* bgr_img){
+    cv::flip(*bgr_img, *bgr_img, 1);
+  }
   void startReadAndSendThread(const int camera_idx, const std::string& cal_file,
                               const bool rotate_img) {
     read_thread_ = std::thread(&AprilTagHandler::readAndSend, this, camera_idx,
