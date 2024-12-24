@@ -145,3 +145,4 @@ Flask App: ![Alt](/res/flaskapp.png "Flask App Screenshot")
 
 Information for how data is sent to and from the Orin on NetworkTables is stored on the following Google Doc <a> https://docs.google.com/document/d/1zhl0dlSLXOld302rhOQrhItLp2thuDD308Gv3yvkHMY/edit?usp=sharing</a>
 
+If you are an M-A Student looking for access to the build server, please fill out the form <a> https://docs.google.com/document/d/14MWXYbr9kazaDxuQmgdHVRad1crJv6h6GJaEA4p0HTE/edit?usp=sharing </a>
