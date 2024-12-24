@@ -42,8 +42,10 @@ using json = nlohmann::json;
 
 DEFINE_int32(camera_idx, 0, "Camera index");
 DEFINE_string(cal_file, "", "path name to calibration file");
-DEFINE_bool(rotate_img, true,
+DEFINE_bool(rotate_vertical, false,
             "Rotates image by 180 degrees prior to detecting apriltags");
+DEFINE_bool(rotate_horizontal, false,
+            "Rotates image by 90 degrees prior to detecting apriltags");
 
 enum ExposureMode { AUTO = 0, MANUAL = 1 };
 
@@ -78,8 +80,12 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
         exposure_mode_ = j["value"].get<int>();
         settings_changed_ = true;
       }
-      if (j["type"] == "rotate") {
-        gui_rotate_img_ = j["value"].get<bool>();
+      if (j["type"] == "flipVertical") {
+        flipVertical_ = j["value"].get<bool>();
+        settings_changed_ = true;
+      }
+      if(j["type"] == "flipHorizontal"){
+        flipHorizontal_ = j["value"].get<bool>();
         settings_changed_ = true;
       }
 
@@ -166,7 +172,8 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     return true;
   }
 
-  // TODO: Implement a faster version of this method!
+/*
+Legacy vertical flipping code
   void rotateImage(cv::Mat* bgr_img, const float angle) {
     cv::Point2f center((bgr_img->cols - 1) / 2.0, (bgr_img->rows - 1) / 2.0);
     cv::Mat matRotation = cv::getRotationMatrix2D(center, angle, 1.0);
@@ -174,16 +181,17 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     cv::warpAffine(*bgr_img, rotatedImage, matRotation, bgr_img->size());
     *bgr_img = rotatedImage.clone();
   }
-  void flip180(cv::Mat* bgr_img){
+*/
+  void flipVertical(cv::Mat* bgr_img){
     cv::flip(*bgr_img, *bgr_img, 0);
   }
-  void flip90(cv::Mat* bgr_img){
+  void flipHorizontal(cv::Mat* bgr_img){
     cv::flip(*bgr_img, *bgr_img, 1);
   }
   void startReadAndSendThread(const int camera_idx, const std::string& cal_file,
-                              const bool rotate_img) {
+                              const bool rotate_vertical, const bool rotate_horizontal) {
     read_thread_ = std::thread(&AprilTagHandler::readAndSend, this, camera_idx,
-                               cal_file, rotate_img);
+                               cal_file, rotate_vertical, rotate_horizontal);
   }
 
   void joinReadAndSendThread() {
@@ -210,7 +218,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
   }
 
   void readAndSend(const int camera_idx, const std::string& cal_file,
-                   const bool rotate_img) {
+                   const bool rotate_vertical, const bool rotate_horizontal) {
     std::cout << "Enabling video capture" << std::endl;
     bool camera_started = false;
     cv::VideoCapture cap;
@@ -291,7 +299,8 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     // Set the value of the gui rotate image variable to the value
     // that is passed in on the command line.  The user can change it
     // later on from the gui.
-    gui_rotate_img_ = rotate_img;
+    flipVertical_ = rotate_vertical;
+    flipHorizontal_ = rotate_horizontal;
 
     int frame_counter = 0;
     cv::Mat bgr_img, yuyv_img;
@@ -315,8 +324,13 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
         frame_counter++;
 
         auto overallstart = std::chrono::high_resolution_clock::now();
-        if (gui_rotate_img_) {
-          rotateImage(&bgr_img, 180.0);
+        //Let's check the time this takes, can always combine to one call if both are true later.
+        //Best case scenario is we don't place the camera wrong so we do not need this method at all.
+        if (flipVertical_) {
+          flipVertical(&bgr_img);
+        }
+        if (flipHorizontal_) {
+          flipHorizontal(&bgr_img);
         }
         cv::cvtColor(bgr_img, yuyv_img, cv::COLOR_BGR2YUV_YUYV);
         auto gpudetectstart = std::chrono::high_resolution_clock::now();
@@ -427,7 +441,8 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
   std::atomic<int> exposure_{50};
   std::atomic<int> exposure_mode_{0};
   std::atomic<bool> settings_changed_{false};
-  std::atomic<bool> gui_rotate_img_{false};
+  std::atomic<bool> flipVertical_{false};
+  std::atomic<bool> flipHorizontal_{false};
   std::thread read_thread_;
 };
 
@@ -457,7 +472,7 @@ int main(int argc, char* argv[]) {
 
     handler
         ->startReadAndSendThread(FLAGS_camera_idx, FLAGS_cal_file,
-                                 FLAGS_rotate_img);
+                                 FLAGS_rotate_vertical, FLAGS_rotate_horizontal);
     server->serve("", 8080);
     handler->stop();
     handler->joinReadAndSendThread();
