@@ -171,17 +171,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 
     return true;
   }
-
-/*
-Legacy vertical flipping code
-  void rotateImage(cv::Mat* bgr_img, const float angle) {
-    cv::Point2f center((bgr_img->cols - 1) / 2.0, (bgr_img->rows - 1) / 2.0);
-    cv::Mat matRotation = cv::getRotationMatrix2D(center, angle, 1.0);
-    cv::Mat rotatedImage;
-    cv::warpAffine(*bgr_img, rotatedImage, matRotation, bgr_img->size());
-    *bgr_img = rotatedImage.clone();
-  }
-*/
+//Flipcode -1 = both directions
   void flipVertical(cv::Mat* bgr_img){
     cv::flip(*bgr_img, *bgr_img, 0);
   }
