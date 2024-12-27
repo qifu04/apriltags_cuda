@@ -172,11 +172,11 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     return true;
   }
 //Flipcode -1 = both directions
-  void flipVertical(cv::Mat* bgr_img){
-    cv::flip(*bgr_img, *bgr_img, 0);
+  void flipVertical(const cv::Mat& bgr_img, cv::Mat* output_img){
+    cv::flip(bgr_img, *output_img, 0);
   }
-  void flipHorizontal(cv::Mat* bgr_img){
-    cv::flip(*bgr_img, *bgr_img, 1);
+  void flipHorizontal(const cv::Mat& bgr_img, cv::Mat* output_img){
+    cv::flip(bgr_img, *output_img, 1);
   }
   void startReadAndSendThread(const int camera_idx, const std::string& cal_file,
                               const bool rotate_vertical, const bool rotate_horizontal) {
