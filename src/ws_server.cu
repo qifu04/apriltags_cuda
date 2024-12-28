@@ -178,6 +178,9 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
   void flipHorizontal(const cv::Mat& bgr_img, cv::Mat* output_img){
     cv::flip(bgr_img, *output_img, 1);
   }
+    void flipBoth(const cv::Mat& bgr_img, cv::Mat* output_img){
+    cv::flip(bgr_img, *output_img, -1);
+  }
   void startReadAndSendThread(const int camera_idx, const std::string& cal_file,
                               const bool rotate_vertical, const bool rotate_horizontal) {
     read_thread_ = std::thread(&AprilTagHandler::readAndSend, this, camera_idx,
@@ -316,12 +319,18 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
         auto overallstart = std::chrono::high_resolution_clock::now();
         //Let's check the time this takes, can always combine to one call if both are true later.
         //Best case scenario is we don't place the camera wrong so we do not need this method at all.
-        if (flipVertical_) {
-          flipVertical(&bgr_img);
+        if(flipVertical_ && flipHorizontal_){
+          flipBoth(bgr_img.clone(), &bgr_img);
+        } else {
+          if (flipVertical_) {
+            flipVertical(bgr_img.clone(), &bgr_img);
+          }
+          if (flipHorizontal_) {
+            flipHorizontal(bgr_img.clone(), &bgr_img);
+          }
         }
-        if (flipHorizontal_) {
-          flipHorizontal(&bgr_img);
-        }
+        
+
         cv::cvtColor(bgr_img, yuyv_img, cv::COLOR_BGR2YUV_YUYV);
         auto gpudetectstart = std::chrono::high_resolution_clock::now();
         detector.Detect(yuyv_img.data);
