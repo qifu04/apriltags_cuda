@@ -322,12 +322,12 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
         if(flipVertical_ && flipHorizontal_){
           flipBoth(bgr_img.clone(), &bgr_img);
         } else {
-          if (flipVertical_) {
-            flipVertical(bgr_img.clone(), &bgr_img);
-          }
-          if (flipHorizontal_) {
-            flipHorizontal(bgr_img.clone(), &bgr_img);
-          }
+          // if (flipVertical_) {
+          //   flipVertical(bgr_img.clone(), &bgr_img);
+          // }
+          // if (flipHorizontal_) {
+          //   flipHorizontal(bgr_img.clone(), &bgr_img);
+          // }
         }
         
 
