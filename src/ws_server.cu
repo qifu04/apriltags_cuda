@@ -451,9 +451,8 @@ int main(int argc, char* argv[]) {
     auto handler = std::make_shared<AprilTagHandler>(server);
     server->addWebSocketHandler("/ws", handler);
 
-    handler
-        ->startReadAndSendThread(FLAGS_camera_idx, FLAGS_cal_file,
-                                 FLAGS_rotate_img);
+    handler->startReadAndSendThread(FLAGS_camera_idx, FLAGS_cal_file,
+                                    FLAGS_rotate_img);
     server->serve("public", 8080);
     handler->stop();
     handler->joinReadAndSendThread();
