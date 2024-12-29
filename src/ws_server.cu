@@ -446,6 +446,7 @@ int main(int argc, char* argv[]) {
 
   auto logger = std::make_shared<seasocks::PrintfLogger>();
   auto server = std::make_shared<seasocks::Server>(logger);
+
   try {
     auto handler = std::make_shared<AprilTagHandler>(server);
     server->addWebSocketHandler("/ws", handler);
@@ -453,7 +454,7 @@ int main(int argc, char* argv[]) {
     handler
         ->startReadAndSendThread(FLAGS_camera_idx, FLAGS_cal_file,
                                  FLAGS_rotate_img);
-    server->serve("", 8080);
+    server->serve("public", 8080);
     handler->stop();
     handler->joinReadAndSendThread();
   } catch (const std::exception& e) {
