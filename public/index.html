@@ -142,8 +142,12 @@
                 <button id="incrementExposureDown"> -3 Exposure </button>
             </div>
             <div class="control">
-                <input type="checkbox" id="rotate-image" name="rotate-image">
-                <label for="rotate-image">Rotate Image</label>
+                <input type="checkbox" id="rotate-image-vertically" name="rotate-image-vertically">
+                <label for="rotate-image-vertically">Rotate Image (CHECK BOTH BOXES) </label>
+            </div>
+            <div class="control">
+                <input type="checkbox" id="rotate-image-horizontally" name="rotate-image-horizontally">
+                <label for="rotate-image-horizontally">Rotate Image (CHECK BOTH BOXES) </label>
             </div>
 
         </div>
@@ -254,8 +258,11 @@
             };
         });
 
-        document.getElementById('rotate-image').onchange = function() {
-            sendControl('rotate', this.checked);
+        document.getElementById('rotate-image-vertically').onchange = function() {
+            sendControl('flipVertical', this.checked);
+        };
+        document.getElementById('rotate-image-horizontally').onchange = function() {
+            sendControl('flipHorizontal', this.checked);
         };
 
         // Initial state
