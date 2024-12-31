@@ -9,5 +9,5 @@ NetworkTablesUtil::NetworkTablesUtil() {
 }
 
 double NetworkTablesUtil::getTime() {
-  return inst_.getFPGATimestamp();
+  return timer_.GetTime();
 }
