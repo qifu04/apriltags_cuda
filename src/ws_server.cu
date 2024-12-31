@@ -46,6 +46,7 @@ DEFINE_bool(rotate_vertical, false,
             "Rotates image by 180 degrees prior to detecting apriltags");
 DEFINE_bool(rotate_horizontal, false,
             "Rotates image by 90 degrees prior to detecting apriltags");
+DEFINE_int32(port, 8080, "Server port to run webserver");
 
 enum ExposureMode { AUTO = 0, MANUAL = 1 };
 
@@ -472,7 +473,7 @@ int main(int argc, char* argv[]) {
     handler
         ->startReadAndSendThread(FLAGS_camera_idx, FLAGS_cal_file,
                                  FLAGS_rotate_vertical, FLAGS_rotate_horizontal);
-    server->serve("", 8080);
+    server->serve("", port);
     handler->stop();
     handler->joinReadAndSendThread();
   } catch (const std::exception& e) {
