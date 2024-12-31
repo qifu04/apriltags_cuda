@@ -314,6 +314,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 
       try {
         cap >> bgr_img;
+        double frameReadTime = ntUtil_.getTime();
         frame_counter++;
 
         auto overallstart = std::chrono::high_resolution_clock::now();
@@ -388,6 +389,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
                                      pose.t->data[2]};
 
             detections_record["detections"].push_back(record);
+            networktables_pose_data.push_back(frameReadTime);
             networktables_pose_data.push_back(det->id * 1.0);
 
             networktables_pose_data.push_back(pose.t->data[0]);
@@ -432,6 +434,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 
  private:
   DoubleArraySender tagSender_{"raw_pose"};
+  NetworkTablesUtil ntUtil_{};
   std::set<seasocks::WebSocket*> clients_;
   std::mutex mutex_;
   std::shared_ptr<seasocks::Server> server_;
