@@ -473,7 +473,7 @@ int main(int argc, char* argv[]) {
     handler
         ->startReadAndSendThread(FLAGS_camera_idx, FLAGS_cal_file,
                                  FLAGS_rotate_vertical, FLAGS_rotate_horizontal);
-    server->serve("", port);
+    server->serve("", FLAGS_port);
     handler->stop();
     handler->joinReadAndSendThread();
   } catch (const std::exception& e) {
