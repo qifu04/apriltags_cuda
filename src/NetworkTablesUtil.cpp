@@ -9,5 +9,5 @@ NetworkTablesUtil::NetworkTablesUtil() {
 }
 
 double NetworkTablesUtil::getTime() {
-  return timer_.GetTime();
+  return time_.WPI_GetSystemTime();
 }

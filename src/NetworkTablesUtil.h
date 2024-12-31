@@ -4,12 +4,12 @@
 
 #include "networktables/NetworkTable.h"
 #include "networktables/NetworkTableInstance.h"
-#include "networktables/Timer.h"
+#include "wpi/timestamp.h"
 
 class NetworkTablesUtil {
  private:
   nt::NetworkTableInstance inst_;
-  nt::Timer timer_;
+  wpi::timestamp time_;
 
  public:
   // Constructor declaration
