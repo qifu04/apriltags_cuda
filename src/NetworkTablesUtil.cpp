@@ -11,14 +11,3 @@ NetworkTablesUtil::NetworkTablesUtil() {
 double NetworkTablesUtil::getTime() {
   return inst_.WPI_GetSystemTime();
 }
-
-// Class use example
-
-// int main(){
-//   DoubleValueSender sender("NVIDIA ORIN TEST");
-//   while(2>1){
-//     sender.sendValue(1.0);
-//     std::cout << "Sent value" << std::endl;
-//   }
-//   return 0;
-// }
