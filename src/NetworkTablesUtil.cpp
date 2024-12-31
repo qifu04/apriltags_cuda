@@ -9,5 +9,5 @@ NetworkTablesUtil::NetworkTablesUtil() {
 }
 
 double NetworkTablesUtil::getTime() {
-  return inst_.WPI_GetSystemTime();
+  return inst_.getFPGATimestamp();
 }
