@@ -27,6 +27,7 @@
 #include "DoubleValueSender.h"
 #include "IntegerArraySender.h"
 #include "IntegerValueSender.h"
+#include "NetworkTablesUtil.h"
 #include "apriltag_gpu.h"
 #include "apriltag_utils.h"
 #include "cameraexception.h"
