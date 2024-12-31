@@ -9,7 +9,6 @@
 class NetworkTablesUtil {
  private:
   nt::NetworkTableInstance inst_;
-  wpi::timestamp time_;
 
  public:
   // Constructor declaration
