@@ -3,7 +3,6 @@
 
 <head>
     <title>AprilTag Detection with Controls and Pose Data</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -157,23 +156,66 @@
     <div id="pose-data"></div>
 
     <script>
-        const socket = io();
 
-        socket.on('connect', function () {
+        // Establish WebSocket connection
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const socket = new WebSocket(`${protocol}://${window.location.host}/ws`);
+        socket.binaryType = 'arraybuffer';
+
+        socket.onopen = function () {
             console.log('Connected to server');
-        });
+        };
 
-        socket.on('image', function (data) {
-            document.getElementById('apriltag-image').src = 'data:image/jpeg;base64,' + data;
-        });
+        socket.onmessage = function (event) {
+            const data = event.data;
 
-        socket.on('pose_data', function (data) {
-            const poseDataElement = document.getElementById('pose-data');
-            poseDataElement.innerHTML = formatPoseData(data);
-        });
+            if (data instanceof ArrayBuffer) {
+                const bytes = new Uint8Array(data);
+                const prefixBytes = bytes.slice(0, 5); // First 5 bytes for the prefix
+                const prefix = new TextDecoder().decode(prefixBytes);
+
+                if (prefix === "IMG::") {
+                    // Handle image data
+                    const imageData = bytes.slice(5); // Remaining bytes are image data
+                    const blob = new Blob([imageData], { type: 'image/jpeg' });
+                    const url = URL.createObjectURL(blob);
+                    document.getElementById('apriltag-image').src = url;
+
+                    // Revoke the object URL after the image has loaded to free memory
+                    imgElement.onload = function () {
+                        URL.revokeObjectURL(url);
+                    };
+                }
+                else if (prefix === "POSE:") {
+                    // Handle pose data
+                    const poseDataBytes = bytes.slice(5); // Remaining bytes are JSON data
+                    const poseDataString = new TextDecoder().decode(poseDataBytes);
+                    try {
+                        const poseData = JSON.parse(poseDataString);
+                        const poseDataElement = document.getElementById('pose-data');
+                        poseDataElement.innerHTML = formatPoseData(poseData);
+                    } catch (e) {
+                        console.error('Failed to parse pose data JSON:', e);
+                    }
+                }
+                else {
+                    console.warn('Unknown message prefix:', prefix);
+                }
+            }
+        };
+
+        socket.onerror = function (error) {
+            console.error('WebSocket error:', error);
+        };
+
+        socket.onclose = function () {
+            console.log('WebSocket connection closed');
+            // Optionally implement reconnection logic here
+        };
 
         function sendControl(type, value) {
-            socket.emit('control', { type: type, value: value });
+            const message = JSON.stringify({ type: type, value: value });
+            socket.send(message);
         }
 
         document.getElementById('brightness').oninput = function () {
