@@ -450,12 +450,13 @@ int main(int argc, char* argv[]) {
   google::InitGoogleLogging(argv[0]);
   google::SetVLOGLevel("*", FLAGS_v);
 
-  // Check number of args passed in.
-  if (argc != 5) {
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
+
+  if(FLAGS_cal_file.empty()) {
     LOG(ERROR)
-        << "Usage: ws_server -camera_idx <index> -cal_file <path to cal file";
-    return 1;
+        << "Usage: ws_server -camera_idx <index> -cal_file <path to cal file -port <webserver port>";
   }
+  
 
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
