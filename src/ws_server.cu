@@ -46,6 +46,7 @@ DEFINE_bool(rotate_vertical, false,
             "Rotates image by 180 degrees prior to detecting apriltags");
 DEFINE_bool(rotate_horizontal, false,
             "Rotates image by 90 degrees prior to detecting apriltags");
+DEFINE_int32(port, 8080, "Server port to run webserver");
 
 enum ExposureMode { AUTO = 0, MANUAL = 1 };
 
@@ -450,12 +451,13 @@ int main(int argc, char* argv[]) {
   google::InitGoogleLogging(argv[0]);
   google::SetVLOGLevel("*", FLAGS_v);
 
-  // Check number of args passed in.
-  if (argc != 5) {
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
+
+  if(FLAGS_cal_file.empty()) {
     LOG(ERROR)
-        << "Usage: ws_server -camera_idx <index> -cal_file <path to cal file";
-    return 1;
+        << "Usage: ws_server -camera_idx <index> -cal_file <path to cal file -port <webserver port>";
   }
+  
 
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
@@ -475,8 +477,8 @@ int main(int argc, char* argv[]) {
                                     FLAGS_rotate_vertical,
                                     FLAGS_rotate_horizontal);
 
-    server->serve("public", 8080);
-
+    server->serve("public", FLAGS_port);
+    
     handler->stop();
     handler->joinReadAndSendThread();
   } catch (const std::exception& e) {
