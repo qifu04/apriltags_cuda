@@ -84,7 +84,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
         flipVertical_ = j["value"].get<bool>();
         settings_changed_ = true;
       }
-      if(j["type"] == "flipHorizontal"){
+      if (j["type"] == "flipHorizontal") {
         flipHorizontal_ = j["value"].get<bool>();
         settings_changed_ = true;
       }
@@ -171,18 +171,19 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 
     return true;
   }
-//Flipcode -1 = both directions
-  void flipVertical(const cv::Mat& bgr_img, cv::Mat* output_img){
+  // Flipcode -1 = both directions
+  void flipVertical(const cv::Mat& bgr_img, cv::Mat* output_img) {
     cv::flip(bgr_img, *output_img, 0);
   }
-  void flipHorizontal(const cv::Mat& bgr_img, cv::Mat* output_img){
+  void flipHorizontal(const cv::Mat& bgr_img, cv::Mat* output_img) {
     cv::flip(bgr_img, *output_img, 1);
   }
-    void flipBoth(const cv::Mat& bgr_img, cv::Mat* output_img){
+  void flipBoth(const cv::Mat& bgr_img, cv::Mat* output_img) {
     cv::flip(bgr_img, *output_img, -1);
   }
   void startReadAndSendThread(const int camera_idx, const std::string& cal_file,
-                              const bool rotate_vertical, const bool rotate_horizontal) {
+                              const bool rotate_vertical,
+                              const bool rotate_horizontal) {
     read_thread_ = std::thread(&AprilTagHandler::readAndSend, this, camera_idx,
                                cal_file, rotate_vertical, rotate_horizontal);
   }
@@ -317,9 +318,10 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
         frame_counter++;
 
         auto overallstart = std::chrono::high_resolution_clock::now();
-        //Let's check the time this takes, can always combine to one call if both are true later.
-        //Best case scenario is we don't place the camera wrong so we do not need this method at all.
-        if(flipVertical_ && flipHorizontal_){
+        // Let's check the time this takes, can always combine to one call if
+        // both are true later. Best case scenario is we don't place the camera
+        // wrong so we do not need this method at all.
+        if (flipVertical_ && flipHorizontal_) {
           flipBoth(bgr_img.clone(), &bgr_img);
         } else {
           // if (flipVertical_) {
@@ -329,7 +331,6 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
           //   flipHorizontal(bgr_img.clone(), &bgr_img);
           // }
         }
-        
 
         cv::cvtColor(bgr_img, yuyv_img, cv::COLOR_BGR2YUV_YUYV);
         auto gpudetectstart = std::chrono::high_resolution_clock::now();
@@ -465,14 +466,17 @@ int main(int argc, char* argv[]) {
 
   auto logger = std::make_shared<seasocks::PrintfLogger>();
   auto server = std::make_shared<seasocks::Server>(logger);
+
   try {
     auto handler = std::make_shared<AprilTagHandler>(server);
     server->addWebSocketHandler("/ws", handler);
 
-    handler
-        ->startReadAndSendThread(FLAGS_camera_idx, FLAGS_cal_file,
-                                 FLAGS_rotate_vertical, FLAGS_rotate_horizontal);
-    server->serve("", 8080);
+    handler->startReadAndSendThread(FLAGS_camera_idx, FLAGS_cal_file,
+                                    FLAGS_rotate_vertical,
+                                    FLAGS_rotate_horizontal);
+
+    server->serve("public", 8080);
+
     handler->stop();
     handler->joinReadAndSendThread();
   } catch (const std::exception& e) {

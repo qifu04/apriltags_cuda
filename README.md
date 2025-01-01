@@ -119,27 +119,14 @@ This code ships with a GPU apriltag detection pipeline, and a flask based web vi
 * From the root directory (e.g. apriltags_cuda):
 ```bash
 # Start the GPU Detection Pipeline:
-./build/ws_server -camera_idx 0
+./build/ws_server -camera_idx 0 -cal_file data/calibrationmatrix.json
 ```
 
-* This will start the GPU detection pipeline running off of frames from /dev/video0.  You can also set other indices if your camera mounts on /dev/video1 or a different device.
+* This will start the GPU detection pipeline running off of frames captured from /dev/video0.  You can also set other indices if your camera mounts on /dev/video1 or a different device.  This command launches a websocket server accessible from port 8080 on the local machine.
 
-* Build the python virtualenv for the flask app:
-```bash
-cd app
-virtualenv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
+* Now bring up a web browser and navigate to `http://localhost:8080` and you should see something like shown below
 
-* Launch the flask app
-```bash
-python app.py
-```
-
-* Now bring up a web browser and navigate to `http://localhost:5000` and you should see something like shown below
-
-Flask App: ![Alt](/res/flaskapp.png "Flask App Screenshot")
+Flask App: ![Alt](/res/webserver.png "Webserver Screenshot")
 
 * You can adjust between manual and auto exposure.  When manual exposure is selected you can adjust the exposure and brightness of the image.  If you hold an apriltag of type 36h11 it should be detected by the system and outlines of the detection will be shown.
 
