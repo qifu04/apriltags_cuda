@@ -51,9 +51,6 @@ systemctl enable AprilTagsPipeline.service
 if [ ! -f /etc/profile.d/AddAppsToPaf.sh ]; then
 	cp AddAppsToPaf.sh /etc/profile.d/AddAppsToPaf.sh
 fi
-if [ ! -f /etc/profile.d/AddAppsToPaf.csh ]; then
-	cp AddAppsToPaf.sh /etc/profile.d/AddAppsToPaf.csh
-fi
 
 # now onto the AprilTags specific items
 cp -R AprilTags/ /apps/
