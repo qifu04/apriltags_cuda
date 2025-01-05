@@ -2,8 +2,8 @@
 #define NETWORKTABLESUTIL_H
 
 
-#include "networktables/NetworkTable.h"
-#include "networktables/NetworkTableInstance.h"
+//#include "networktables/NetworkTable.h"
+//#include "networktables/NetworkTableInstance.h"
 #include "wpi/timestamp.h"
 
 class NetworkTablesUtil {
