@@ -7,8 +7,8 @@
 #include "wpi/timestamp.h"
 
 class NetworkTablesUtil {
- private:
-  nt::NetworkTableInstance inst_;
+ //private:
+  //nt::NetworkTableInstance inst_;
 
  public:
   // Constructor declaration
