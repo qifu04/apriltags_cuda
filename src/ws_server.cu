@@ -436,7 +436,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
   void stop() { running_ = false; }
 
  private:
-  DoubleArraySender tagSender_{"raw_pose"};
+  DoubleArraySender tagSender_{"SET YOUR TABLENAME HERE FOR EACH CAMERA!!!!!!!!!"};
   NetworkTablesUtil ntUtil_{};
   std::set<seasocks::WebSocket*> clients_;
   std::mutex mutex_;
