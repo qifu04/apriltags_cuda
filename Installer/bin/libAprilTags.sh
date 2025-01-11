@@ -21,4 +21,31 @@ function getProcPID() {
 
 if [[ $1 == "pid" ]]; then
     getProcPID $2
+elif [[ $1 == "camIDs" ]]; then
+    ret=/apps/bin/scanner
+    if [[ ret == *"ERR"* ]]; then
+    	echo "there was an error..."
+    	return 1
+    fi
+    # all good
+    echo ret
+    return 0
+elif [[ $1 == "getCamLoc" ]]; then
+    camlocfile="/apps/AprilTags/data/cameralocations"
+    camid=$2
+    if ! [[ -f camlocfile ]]; then
+        echo "cam locations file not found."
+        return 1 # maybe stop using the same things
+    fi
+    # must have the file, assume that the file is correct
+    set -e # just in case
+    locfile=$(tail -n +1 camlocfile)
+    for line in locfile; do
+        if [[ "$2" == "${line[0]}" ]]; then
+            echo line[1]
+            return 0
+        fi
+    done
+    echo "id not found"
+    return 1 # again, same code
 fi
