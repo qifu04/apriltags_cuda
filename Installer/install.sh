@@ -49,7 +49,7 @@ systemctl enable AprilTagsPipeline.service
 # add path modification in /etc/profile.d/ if not already there
 # why two? idk. it just apparently should have both?
 if [ ! -f /etc/profile.d/AddAppsToPaf.sh ]; then
-	cp AddAppsToPaf.sh /etc/profile.d/AddAppsToPaf.sh
+	cp AddAppsToPath.sh /etc/profile.d/AddAppsToPath.sh
 fi
 
 # now onto the AprilTags specific items

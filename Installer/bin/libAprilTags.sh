@@ -23,12 +23,15 @@ if [[ $1 == "pid" ]]; then
     getProcPID $2
 elif [[ $1 == "camIDs" ]]; then
     ret=/apps/bin/scanner
-    if [[ ret == *"ERR"* ]]; then
+    if [[ "${ret,,}" == *"err"* ]]; then
     	echo "there was an error..."
     	return 1
+    elif ! [[ "${ret:0:1}" == "[" ]] || ! [[ "${ret:-1:1}" == "]" ]]; then
+        echo "what kind of array is this????"
+        return 1
     fi
     # all good
-    echo ret
+    echo "${ret:1:-1}"
     return 0
 elif [[ $1 == "getCamLoc" ]]; then
     camlocfile="/apps/AprilTags/data/cameralocations"
