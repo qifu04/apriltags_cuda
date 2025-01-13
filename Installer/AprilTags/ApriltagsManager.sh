@@ -58,22 +58,27 @@ if [[ $1 == "start" ]]; then
     touch /apps/AprilTags/servicerunning
     
     cams=`libAprilTags.sh camIDs`
-    retcode=$?
+    if [[ $? -ne 0 ]]; then
+    	echo "No cams found or something. idk, but no cams, so die"
+    	exit 5
+    fi
     
     # cd again just to be safe (that lib WILL cd)
     cd /apps/AprilTags
     
-    if [[ $recode -ne 0 ]]; then
-    	echo "No cams found or something. idk, but no cams, so die"
-    	exit 5
-    fi
     # iterate
     for cam in $cams; do
         # set items off of the output cam
         IFS=: read -r camID camIndex <<< "$s"
         
+        # get the offset file
+        camLoc=$(libAprilTags.sh getCamLoc $camID)
+        if [[ $? -ne 0 ]]; then
+            camLoc="cam-home-offset.json"
+        fi
+        
         # set args
-        args=$backend # this actually is magical dwdw about it
+        args=$backend # this actually is magical because of the weird eval thing
         # https://stackoverflow.com/questions/5112663/bash-variable-reevaluation
         
         # abs path BECAUSE of the proc getting commands
