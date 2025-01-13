@@ -1,4 +1,6 @@
 # Please be careful editing this file!
-backend="-camera_idx 0 -cal_file data/calibrationmatrix.json"
+# It looks odd and it is structured in two seperate ways, but it is fine, write inside the echo for backend
+# ${camIndex} is the video index of the camera, and ${camID} is the id of the camera (by serial)
+backend='eval echo "-camera_idx ${camIndex} -cal_file data/calibrationmatrix.json -offset_file data/cam-${camID}-offset.json"'
 # manager
 autormlockfile="true"
