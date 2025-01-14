@@ -54,7 +54,7 @@ fi
 
 # now onto the AprilTags specific items
 cp -R AprilTags/ /apps/
-cp bin/* /apps/bin/
+cp -R  bin/* /apps/bin/
 
 echo "The AprilTags service has been installed and enabled. Run 'AprilTags.sh --update all' in the Cuda project root to sync it to be run."
 echo "HINT: program not found error? run 'export PATH=\$PATH:/apps/bin' in your session"
