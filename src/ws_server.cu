@@ -463,7 +463,10 @@ int main(int argc, char* argv[]) {
         << "Usage: ws_server -camera_idx <index> -cal_file <path to cal file -port <webserver port>";
   }
   
-
+  if(FLAGS_camera_name.empty()) {
+    LOG(ERROR) << "camera_name is required";
+    return 1;
+  }
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   if (!std::filesystem::exists(FLAGS_cal_file)) {
