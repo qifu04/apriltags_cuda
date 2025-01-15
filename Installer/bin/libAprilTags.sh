@@ -35,10 +35,12 @@ elif [[ $1 == "camIDs" ]]; then
     fi
     
     if [[ "${ret,,}" == *"err"* ]] || [[ "${ret,,}" == *"fault"* ]]; then
-    	echoerr "there was an error..."
+    	# the majority of time that this control path gets reached will be because Go tries to run main, but then lacks some variables and errors out
+    	echoerr "The Go code probably ran into an error. Look at the logs above to see it, otherwise make sure you have cameras plugged in."
     	exit 1
     elif ! [[ "${ret:0:1}" == "[" ]] || ! [[ "${ret: -1}" == "]" ]]; then
-        echoerr "what kind of array is this????"
+    	# There might be some novel way that this control path can be reached, for the most part, this will not get here
+        echoerr "This is some novel error that I do not know how got here. Make sure you have cameras plugged in."
         exit 1
     fi
     # all good
