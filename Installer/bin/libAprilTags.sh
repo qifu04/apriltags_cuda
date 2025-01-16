@@ -30,8 +30,14 @@ elif [[ $1 == "camIDs" ]]; then
     if [[ -f "scanner_${arch}" ]]; then
         ret=$("./scanner_${arch}")
     else
-        echoerr "running go file directly"
-        ret=$(go run main)
+    	if [[ $arch == "x86_64" ]]; then
+    	    # x86 can run aarch64 binaries for some reason, so do that
+    	    ret=$("./scanner_aarch64")
+    	    
+    	else
+            echoerr "running go file directly"
+            ret=$(go run main)
+        fi
     fi
     
     if [[ "${ret,,}" == *"err"* ]] || [[ "${ret,,}" == *"fault"* ]]; then

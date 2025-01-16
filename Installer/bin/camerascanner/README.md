@@ -1,5 +1,5 @@
 # Camerascanner
-A helper function by Segan to read the serial number of a camera and the index 0 id of the camera as the /dev/video device. It is structured as ${serial}:${videoid}.
+A helper function by Segen to read the serial number of a camera and the index 0 id of the camera as the /dev/video device. It is structured as ${serial}:${videoid}.
 
 ## building
 ```bash

@@ -59,7 +59,7 @@ if [[ $1 == "start" ]]; then
     
     cams=`libAprilTags.sh camIDs`
     if [[ $? -ne 0 ]]; then
-    	echo "No cams found or something. idk, but no cams, so die"
+    	echo "No cameras found or something. Try plugging some in, or else the cameras are not being seen."
     	exit 5
     fi
     
@@ -96,7 +96,7 @@ elif [[ $1 == "stop" ]]; then
     	    	# assume its a PID that belongs to ws_server if running
     	    	if ps -p $p > /dev/null
     	    	then
-    	    	    kill -2 $p
+    	    	    timeout kill -2 $p &
     	        fi
     	    fi
     	done < /apps/AprilTags/servicerunning
