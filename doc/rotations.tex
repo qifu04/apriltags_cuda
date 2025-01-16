@@ -377,8 +377,7 @@ The rotation matrix around the \(y\)-axis is
     \begin{pmatrix}
         cos(\gamma) & 0 & sin(\gamma) \\
         0 & 1 & 0 \\
-        -sin(\gamma) & 0 & cos(\gamma) \\
-        0 & 0 & 1
+        -sin(\gamma) & 0 & cos(\gamma)
     \end{pmatrix}
 \end{equation}
 
@@ -401,45 +400,197 @@ Here I have introduced another angle $\alpha$.  Notice that the first column of 
 is (1, 0, 0), which also happens to the be coordinates of the x-axis.  When you rotate 
 about the x-axis the vectors only change in the Y-Z plane.
 
-\subsection{Worked Example}
+These rotations are shown in figure \ref{fig:3d1}.
 
-Let's see if our rotations still work in 3D.  Let's take the same coordiate frame
-as before in figure \ref{fig:2d1}.  Let's imagine that we have a vector Z in the X-Y frame,
-and that vector points straight out of the page.  We'll call this frame X-Y-Z.  The frame
-A-B also has a vector C that is aligned with the Z-axis and points straight out of the page.
-We'll call this frame A-B-C.  So now we rotate A-B-C by angle $\theta$ around the Z-axis in the X-Y-Z frame,
-and we want to compute the coordinates of the rotated A-B-C 
+\begin{figure}[h!]
+    \centering
+    \includegraphics[scale=0.75]{figures/3d1.png}
+    \caption{3D Rotations about each axis.}
+    \label{fig:3d1}
+\end{figure}
 
-\subsection{Rotation About an Arbitrary Axis}
-Discuss Rodrigues' rotation formula, quaternions, or Euler angles—whatever is relevant.
+
+\subsection{Order of Rotations Matters A Lot}
+
+Rotation matrices are not commutative.  That is, \( R_z(\theta) * R_y(\gamma) \neq R_y(\gamma) * R_z(\theta) \).
+This is because the order of rotations matters!  You can see this pictorially by making
+a 3D coordinate frame out of your thumb and fingers on your right hand.  If you rotate about
+the z-axis first, then rotate about the y-axis, your hand will end up in a different orientation
+than if you rotated about the y-axis first, then rotate about the z-axis.
+
+You should be able to convince yourself mathematically that $R_z(\theta) * R_y(\gamma) \neq R_y(\gamma) * R_z(\theta)$ 
+by multiplying the matrices together both ways and comparing the results.
+
+\subsection{Roll Pitch Yaw}
+
+Another way to think about rotations is in terms of roll, pitch, and yaw.  Roll is rotation
+around the x-axis, pitch is rotation around the y-axis, and yaw is rotation around the z-axis.
+This is often used in aeronautical applications to describe the orientation of an airplane.
+
+
+\subsection{Combining the Rotation Matrices}
+
+In you know the individual rotation angles about each of the 3 axes, you can construct
+each rotation matrix.  You can then combine those matrices to get a single rotation matrix
+by multiplying them together as follows:
+
+\begin{equation}
+    R(\theta, \gamma, \alpha) = R_x(\alpha) * R_y(\gamma) * R_z(\theta)
+\end{equation}
+
+But you do have to be careful about the order of multiplication.  If we include a vector
+in the equation as follows:
+
+\begin{equation}
+    v' = R(\theta, \gamma, \alpha) * \vec{v} = R_x(\alpha) * R_y(\gamma) * R_z(\theta) * \vec{v}
+\end{equation}
+
+hopefully you can see that the first rotation is around the z-axis, followed by a rotation
+about the y-axis, followed by a rotation about the x-axis.  The equation reads right
+to left, and the first thing that gets multiplied by the vector is the z-axis rotation.
+
 
 %-----------------------------------------------------------------------
-% 5. PROPERTIES OF ROTATION MATRICES
+% 5. Coordinate Transformations
 %-----------------------------------------------------------------------
-\section{Properties of Rotation Matrices}
-\label{sec:properties}
+\section{Coordinate Transformations}
+\label{sec:transformations}
 
-Mention key properties like:
-\begin{itemize}
-    \item Orthogonality: \( R^\top R = I \)
-    \item \(\det R = +1\)
-    \item Composing rotations
-    \item Relationship to \(\mathrm{SO}(n)\)
-\end{itemize}
+Now we have enough background to tackle a coordinate transformation on a robot.  Let’s say  
+that have a robot with a camera mounted on it.  The coordinate frame of the robot is denoted
+by $X_R$, $Y_R$, and $Z_R$.  The coordinate frame of the camera is denoted by $X_C$, $Y_C$,
+and $Z_C$.  The robot coorinate frame is positioned at the origin of the robot such that
+$Z_R$ points upwards and $X_R$ points forwards on the robot.
 
-%-----------------------------------------------------------------------
-% 6. APPLICATIONS
-%-----------------------------------------------------------------------
-\section{Applications}
-\label{sec:applications}
+The camera coordinate frame follows the coordinate frame of OpenCV, such that $Z_C$ points
+outwards from the center of the camera, $X_C$ points to the right, and $Y_C$ points down.  The
+camera coordinate frame is shwon in figure \ref{fig:pinhole_camera_model}.
 
-Discuss practical uses:
-\begin{itemize}
-    \item Robotics
-    \item Computer graphics
-    \item Aerospace
-    \item Image processing
-\end{itemize}
+\begin{figure}[h!]
+    \centering
+    \includegraphics[scale=0.5]{figures/pinhole_camera_model.png}
+    \caption{The camera coordinate frame.}
+    \label{fig:pinhole_camera_model}
+\end{figure}
+
+The camera is placed on a location on the robot such that the camera $Z_C$ points towards
+the front of the robot.  The camera is looking at something of interest, such as the apriltag,
+which is placed somewhere in the camera's field of view.  This setup is shown in figure \ref{fig:robot}.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[scale=0.5]{figures/robot.png}
+    \caption{The robot and camera coordinate frames.}
+    \label{fig:robot}
+\end{figure}
+
+
+In this case the camera measures the location of the apriltag in the camera coordinate frame.
+That is denoted by the vector called "Apriltag Distance" on the diagram.  In order to get the
+coordinates of the apriltag in the robot coordinate frame, we need to transform the vector
+called "Aptriltag Distance" by the rotation matrix of the robot, and apply the translation
+vector denoted by "T" in the diagram.  The resulting vector is the location of the apriltag
+in the robot coordinate frame, denoted by "Apriltag to Robot".
+
+The translation vector is just the mounting point of the camera in the robot coordinate frame.
+We generally try to make it so that the camera is rigidly mounted on the robot, and
+doesn't move around.  If the camera is not rigidly mounted on the robot, then the translation vector
+will be off and our results will be off.  The translation vector is simply a 3-component vector
+as follows:
+
+\begin{equation}
+    \vec{T} = \begin{bmatrix}
+        t_x \\
+        t_y \\
+        t_z
+    \end{bmatrix}
+\end{equation}
+
+Generally this can be derived fairly accurately from CAD Drawings.  The rotation matrix may also
+be derived from CAD drawings, or it can be measured directly.  We will work out how to 
+measure the rotation matrix in the next section.  In this section let's work out how to 
+build a rotation matrix from a CAD drawing.
+
+The first thing to notice is that the camera coordinate frame is rotated from the robot
+frame.  The $Z_C$ axis aligns with the robot $X_R$ axis.  So we need a rotation
+about the Y axis by 90 degrees to get those aligned. After that we can rotate
+by -90 degrees about the X axis to get the camera coordinate frame aligned with
+the robot coordinate frame.  That is the rotation matrix we need to build.
+This is shown in figure \ref{fig:rotations}.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[scale=0.5]{figures/rotations.png}
+    \caption{Two rotations to align the camera coordinate frame with the robot coordinate frame.}
+    \label{fig:rotations}
+\end{figure}
+
+Putting this together we would get the following rotation matrix:
+
+\begin{equation}
+    R_x(-90) * R_y(90) * \vec{v}
+\end{equation}
+
+which expands to:
+
+\begin{equation}
+    \begin{pmatrix}
+        1 & 0 & 0 \\
+        0 & cos(\alpha) & -sin(\alpha) \\
+        0 & sin(\alpha) & cos(\alpha)
+    \end{pmatrix}
+    *
+    \begin{pmatrix}
+        cos(\gamma) & 0 & sin(\gamma) \\
+        0 & 1 & 0 \\
+        -sin(\gamma) & 0 & cos(\gamma)
+    \end{pmatrix}
+    * 
+    \begin{pmatrix}
+        v_x \\
+        v_y \\
+        v_z
+    \end{pmatrix}
+\end{equation}
+
+where $\gamma$ is the angle of rotation about the Y axis equal to 90 degrees ($\pi/2$ radians), 
+and $\alpha$ is the angle of rotation about the X axis equal to -90 degrees ($-\pi/2$ radians).
+
+Putting this all together and including the translation vector we get:
+
+\begin{equation}
+    \vec{v_{robot-frame}} = R * \vec{v_{camera-frame}} + \vec{T}
+\end{equation}
+
+or
+
+\begin{equation}
+    \vec{v_{robot-frame}} = 
+    \begin{pmatrix}
+        1 & 0 & 0 \\
+        0 & cos(\alpha) & -sin(\alpha) \\
+        0 & sin(\alpha) & cos(\alpha)
+    \end{pmatrix}
+    *
+    \begin{pmatrix}
+        cos(\gamma) & 0 & sin(\gamma) \\
+        0 & 1 & 0 \\
+        -sin(\gamma) & 0 & cos(\gamma)
+    \end{pmatrix}
+    * 
+    \begin{pmatrix}
+        v_x \\
+        v_y \\
+        v_z
+    \end{pmatrix}
+    +
+    \begin{pmatrix}
+        t_x \\
+        t_y \\        
+        t_z
+    \end{pmatrix}
+\end{equation}
+
 
 %-----------------------------------------------------------------------
 % 7. CONCLUSION
