@@ -96,7 +96,7 @@ elif [[ $1 == "stop" ]]; then
     	    	# assume its a PID that belongs to ws_server if running
     	    	if ps -p $p > /dev/null
     	    	then
-    	    	    timeout kill -2 $p &
+    	    	    timeout -s INT 5s 'killHandler.sh ${p}' &
     	        fi
     	    fi
     	done < /apps/AprilTags/servicerunning
