@@ -164,9 +164,11 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     dist->k3 = data["disto"][0][4];
 
     double rotationCoefficents[9] = {0,0,0,0,0,0,0,0,0};
+    int count = 0;
     for(int i = 0; i < 3; i++){
       for(int j = 0; j < 3; j++){
-        rotationCoefficents[i][j] = data["rotation"][i][j];
+        rotationCoefficents[c] = data["rotation"][i][j];
+        c += 1;
       }
     }
     rotationCoefficents_ = (cv::Mat_<double>(3, 3) << 
@@ -413,7 +415,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
             //TODO: Unimplemented translation code (Crystal to add)
 
             
-            record["translation"] = {translationAfter[0], translationAfter[1], translationAfter[2]};
+            record["translation"] = {translationAfter.at<double>(0), translationAfter.at<double>(1), translationAfter.at<double>(2)};
 
             detections_record["detections"].push_back(record);
             networktables_pose_data.push_back(frameReadTime);
