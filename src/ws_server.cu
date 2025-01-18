@@ -145,6 +145,10 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
       LOG(ERROR) << "key \"rotation\" not found in calibration file.";
       return false;
     }
+    if(!data.contains("offset")){
+      LOG(ERROR) << "key \"offset\" not found in calibration file.";
+      return false;
+    }
 
     // Setup Camera Matrix
     // Intrinsic Matrices are explained here:
@@ -171,11 +175,18 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
         c += 1;
       }
     }
+    double offsetCoeficients[3] = {0,0,0};
+    for(int i = 0; i < 2; i++){
+      offsetCoeficients[i] = data["offset"][i];
+    }
+
     rotationCoefficents_ = (cv::Mat_<double>(3, 3) << 
                        rotationCoefficents[0], rotationCoefficents[1], rotationCoefficents[2],
                        rotationCoefficents[3], rotationCoefficents[4], rotationCoefficents[5],
                        rotationCoefficents[6], rotationCoefficents[7], rotationCoefficents[8]);
 
+    offsetCoefficents_ = (cv::Mat_<double>(3,1) <<
+                       offsetCoeficients[0], offsetCoeficients[1], offsetCoeficients[2]);
     // Some debug print statements
     std::cout << "Loaded calibration matrix:" << std::endl;
     std::cout << "cam.fx: " << cam->fx << std::endl;
@@ -410,7 +421,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 
             cv::Vec3d aprilTagInCameraFrame(pose.t->data[0], pose.t->data[1], pose.t->data[2]);
             cv::Mat aprilTagInCameraFrameAsMat = cv::Mat(aprilTagInCameraFrame);
-            cv::Mat aprilTagInRobotFrame = rotationCoefficents_ * aprilTagInCameraFrameAsMat;
+            cv::Mat aprilTagInRobotFrame = rotationCoefficents_ * aprilTagInCameraFrameAsMat + offsetCoefficents_;
             //TODO: Unimplemented translation code (Crystal to add)
 
             
@@ -464,6 +475,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
   DoubleArraySender tagSender_{FLAGS_camera_name};
 
   cv::Mat rotationCoefficents_;
+  cv::Mat offsetCoefficents_;
   NetworkTablesUtil ntUtil_{};
   std::set<seasocks::WebSocket*> clients_;
   std::mutex mutex_;
