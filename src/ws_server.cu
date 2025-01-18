@@ -485,7 +485,7 @@ int main(int argc, char* argv[]) {
                                     FLAGS_rotate_vertical,
                                     FLAGS_rotate_horizontal);
 
-    server->serve("public", FLAGS_port);
+    server->serve("public", FLAGS_port + FLAGS_camera_idx);
     
     handler->stop();
     handler->joinReadAndSendThread();
