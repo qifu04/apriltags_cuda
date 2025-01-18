@@ -69,16 +69,23 @@ if [[ $1 == "start" ]]; then
     # iterate
     for cam in $cams; do
         # set items off of the output cam
-        IFS=: read -r camID camIndex <<< "$s"
+        IFS=: read -r camID camIndex <<< "$cam"
         
         # get the offset file
         camLoc=$(libAprilTags.sh getCamLoc $camID)
         if [[ $? -ne 0 ]]; then
-            camLoc="cam-home-offset.json"
+            echo "FAILED TO FIND CAMERA OFFSET ${camID}, EXITING..."
+            exit 6
+        fi
+        
+        # ensure that the calibration file exists
+        if ! [[ -f /apps/AprilTags/data/calibration/calibrationmatrix_${camID}.json ]]; then
+            echo "FAILED TO FIND CAMERA CALIBRATION FILE ${camID}, EXITING..."
+            exit 6
         fi
         
         # set args
-        args=$backend # this actually is magical because of the weird eval thing
+        args=`$backend` # this actually is magical because of the weird eval thing
         # https://stackoverflow.com/questions/5112663/bash-variable-reevaluation
         
         # abs path BECAUSE of the proc getting commands
@@ -102,10 +109,11 @@ elif [[ $1 == "stop" ]]; then
     	done < /apps/AprilTags/servicerunning
     fi
     # and add the rest of it
+    # this is broken, and I am too lazy to fix it
     #killIfRunning '/apps/AprilTags/Backend/ws_server'
-    while killIfRunning '/apps/AprilTags/Backend/ws_server'; do
-    	continue # just run the initial condition, a backup if the service orphaned something
-    done
+    #while killIfRunning '/apps/AprilTags/Backend/ws_server'; do
+    #	continue # just run the initial condition, a backup if the service orphaned something
+    #done
     
     rm /apps/AprilTags/servicerunning
 else

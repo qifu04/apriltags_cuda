@@ -137,12 +137,18 @@ elif [ $update == "t" ]; then
     printV "copying backend..."
     cp -R build/* /apps/AprilTags/Backend/
     
+    printV "copying data..."
     # remove the existing data dir if it exists then replace it
     if [ -d /apps/AprilTags/data ]; then
     	rm -rf /apps/AprilTags/data
     fi
     if [ -d data ]; then
     	cp -R data/ /apps/AprilTags/data/
+    fi
+    
+    printV "copying public server files..."
+    if [ -d public ]; then
+        cp -R public/ /apps/AprilTags/public
     fi
     
     printV "The files were sucessfully coppied"
