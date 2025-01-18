@@ -163,11 +163,16 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     dist->p2 = data["disto"][0][3];
     dist->k3 = data["disto"][0][4];
 
+    double rotationCoefficents[9] = {0,0,0,0,0,0,0,0,0};
     for(int i = 0; i < 3; i++){
       for(int j = 0; j < 3; j++){
-        rotationCoefficents_[i][j] = data["rotation"][i][j];
+        rotationCoefficents[i][j] = data["rotation"][i][j];
       }
     }
+    rotationCoefficents_ = (cv::Mat_<double>(3, 3) << 
+                       rotationCoefficents[0], rotationCoefficents[1], rotationCoefficents[2],
+                       rotationCoefficents[3], rotationCoefficents[4], rotationCoefficents[5],
+                       rotationCoefficents[6], rotationCoefficents[7], rotationCoefficents[8]);
 
     // Some debug print statements
     std::cout << "Loaded calibration matrix:" << std::endl;
@@ -181,13 +186,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     std::cout << "dist.p1: " << dist->p1 << std::endl;
     std::cout << "dist.p2: " << dist->p2 << std::endl;
     std::cout << "dist.k3: " << dist->k3 << std::endl << std::endl;
-    std::cout << "Loaded rotation coefficients: " << std::endl;
-    for(int i = 0; i < 3; i++){
-      for(int j = 0; j < 3; j++){
-        std::cout << rotationCoefficents_[i][j] << " ";
-      }
-      std::cout << std::endl;
-    }
+    
 
     return true;
   }
@@ -407,23 +406,22 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
                 {pose.R->data[3], pose.R->data[4], pose.R->data[5]},
                 {pose.R->data[6], pose.R->data[7], pose.R->data[8]}};
 
-            double translationBefore[3] = {pose.t->data[0], pose.t->data[1], pose.t->data[2]};
-            double translationAfter[3][3];
+            double translationBefore[3] = {};
+            cv::Vec3d vec(pose.t->data[0], pose.t->data[1], pose.t->data[2]);
+            cv::Mat translation = cv::Mat(vec);
+            cv::Mat translationAfter = rotationCoefficents_ * translation;
+            //TODO: Unimplemented translation code (Crystal to add)
 
-            for(int i = 0; i < 3; i++){
-              for(int j = 0; j < 3; j++){
-                translationAfter[i][j] = rotationCoefficents_[i][j] * translationBefore[j];
-              }
-            }
-            record["translation"] = {translationAfter[0] translationAfter[1], translationAfter[2]};
+            
+            record["translation"] = {translationAfter[0], translationAfter[1], translationAfter[2]};
 
             detections_record["detections"].push_back(record);
             networktables_pose_data.push_back(frameReadTime);
             networktables_pose_data.push_back(det->id * 1.0);
 
-            networktables_pose_data.push_back(translationAfter[0]);
-            networktables_pose_data.push_back(translationAfter[1]);
-            networktables_pose_data.push_back(translationAfter[2]);
+            networktables_pose_data.push_back(translationAfter.at<double>(0));
+            networktables_pose_data.push_back(translationAfter.at<double>(1));
+            networktables_pose_data.push_back(translationAfter.at<double>(2));
           }
 
           // Send the pose data
@@ -464,7 +462,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
  private:
   DoubleArraySender tagSender_{FLAGS_camera_name};
 
-  double rotationCoefficents_[3][3];
+  cv::Mat rotationCoefficents_;
   NetworkTablesUtil ntUtil_{};
   std::set<seasocks::WebSocket*> clients_;
   std::mutex mutex_;
