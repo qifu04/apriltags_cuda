@@ -409,21 +409,21 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
                 {pose.R->data[6], pose.R->data[7], pose.R->data[8]}};
 
             double translationBefore[3] = {};
-            cv::Vec3d vec(pose.t->data[0], pose.t->data[1], pose.t->data[2]);
-            cv::Mat translation = cv::Mat(vec);
-            cv::Mat translationAfter = rotationCoefficents_ * translation;
+            cv::Vec3d aprilTagInCameraFrame(pose.t->data[0], pose.t->data[1], pose.t->data[2]);
+            cv::Mat aprilTagInCameraFrameAsMat = cv::Mat(aprilTagInCameraFrame);
+            cv::Mat aprilTagInRobotFrame = rotationCoefficents_ * aprilTagInCameraFrameAsMat;
             //TODO: Unimplemented translation code (Crystal to add)
 
             
-            record["translation"] = {translationAfter.at<double>(0), translationAfter.at<double>(1), translationAfter.at<double>(2)};
+            record["translation"] = {aprilTagInRobotFrame.at<double>(0), aprilTagInRobotFrame.at<double>(1), aprilTagInRobotFrame.at<double>(2)};
 
             detections_record["detections"].push_back(record);
             networktables_pose_data.push_back(frameReadTime);
             networktables_pose_data.push_back(det->id * 1.0);
 
-            networktables_pose_data.push_back(translationAfter.at<double>(0));
-            networktables_pose_data.push_back(translationAfter.at<double>(1));
-            networktables_pose_data.push_back(translationAfter.at<double>(2));
+            networktables_pose_data.push_back(aprilTagInRobotFrame.at<double>(0));
+            networktables_pose_data.push_back(aprilTagInRobotFrame.at<double>(1));
+            networktables_pose_data.push_back(aprilTagInRobotFrame.at<double>(2));
           }
 
           // Send the pose data
