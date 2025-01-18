@@ -164,7 +164,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     dist->k3 = data["disto"][0][4];
 
     double rotationCoefficents[9] = {0,0,0,0,0,0,0,0,0};
-    int count = 0;
+    int c = 0;
     for(int i = 0; i < 3; i++){
       for(int j = 0; j < 3; j++){
         rotationCoefficents[c] = data["rotation"][i][j];

@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "*.ndjson": "jsonl",
+        "*.dbclient-js": "javascript",
+        "array": "cpp",
+        "span": "cpp",
+        "string": "cpp",
+        "string_view": "cpp",
+        "vector": "cpp"
+    }
+}
