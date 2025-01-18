@@ -408,7 +408,6 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
                 {pose.R->data[3], pose.R->data[4], pose.R->data[5]},
                 {pose.R->data[6], pose.R->data[7], pose.R->data[8]}};
 
-            double translationBefore[3] = {};
             cv::Vec3d aprilTagInCameraFrame(pose.t->data[0], pose.t->data[1], pose.t->data[2]);
             cv::Mat aprilTagInCameraFrameAsMat = cv::Mat(aprilTagInCameraFrame);
             cv::Mat aprilTagInRobotFrame = rotationCoefficents_ * aprilTagInCameraFrameAsMat;
