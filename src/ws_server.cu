@@ -141,6 +141,14 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
       LOG(ERROR) << "key \"disto\" not found in calibration file.";
       return false;
     }
+    if(!data.contains("rotation")){ 
+      LOG(ERROR) << "key \"rotation\" not found in calibration file.";
+      return false;
+    }
+    if(!data.contains("offset")){
+      LOG(ERROR) << "key \"offset\" not found in calibration file.";
+      return false;
+    }
 
     // Setup Camera Matrix
     // Intrinsic Matrices are explained here:
@@ -159,6 +167,26 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     dist->p2 = data["disto"][0][3];
     dist->k3 = data["disto"][0][4];
 
+    double rotationCoefficents[9] = {0,0,0,0,0,0,0,0,0};
+    int c = 0;
+    for(int i = 0; i < 3; i++){
+      for(int j = 0; j < 3; j++){
+        rotationCoefficents[c] = data["rotation"][i][j];
+        c += 1;
+      }
+    }
+    double offsetCoeficients[3] = {0,0,0};
+    for(int i = 0; i < 2; i++){
+      offsetCoeficients[i] = data["offset"][i];
+    }
+
+    rotationCoefficents_ = (cv::Mat_<double>(3, 3) << 
+                       rotationCoefficents[0], rotationCoefficents[1], rotationCoefficents[2],
+                       rotationCoefficents[3], rotationCoefficents[4], rotationCoefficents[5],
+                       rotationCoefficents[6], rotationCoefficents[7], rotationCoefficents[8]);
+
+    offsetCoefficents_ = (cv::Mat_<double>(3,1) <<
+                       offsetCoeficients[0], offsetCoeficients[1], offsetCoeficients[2]);
     // Some debug print statements
     std::cout << "Loaded calibration matrix:" << std::endl;
     std::cout << "cam.fx: " << cam->fx << std::endl;
@@ -171,6 +199,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     std::cout << "dist.p1: " << dist->p1 << std::endl;
     std::cout << "dist.p2: " << dist->p2 << std::endl;
     std::cout << "dist.k3: " << dist->k3 << std::endl << std::endl;
+    
 
     return true;
   }
@@ -389,16 +418,22 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
                 {pose.R->data[0], pose.R->data[1], pose.R->data[2]},
                 {pose.R->data[3], pose.R->data[4], pose.R->data[5]},
                 {pose.R->data[6], pose.R->data[7], pose.R->data[8]}};
-            record["translation"] = {pose.t->data[0], pose.t->data[1],
-                                     pose.t->data[2]};
+
+            cv::Vec3d aprilTagInCameraFrame(pose.t->data[0], pose.t->data[1], pose.t->data[2]);
+            cv::Mat aprilTagInCameraFrameAsMat = cv::Mat(aprilTagInCameraFrame);
+            cv::Mat aprilTagInRobotFrame = rotationCoefficents_ * aprilTagInCameraFrameAsMat + offsetCoefficents_;
+            //TODO: Unimplemented translation code (Crystal to add)
+
+            
+            record["translation"] = {aprilTagInRobotFrame.at<double>(0), aprilTagInRobotFrame.at<double>(1), aprilTagInRobotFrame.at<double>(2)};
 
             detections_record["detections"].push_back(record);
             networktables_pose_data.push_back(frameReadTime);
             networktables_pose_data.push_back(det->id * 1.0);
 
-            networktables_pose_data.push_back(pose.t->data[0]);
-            networktables_pose_data.push_back(pose.t->data[1]);
-            networktables_pose_data.push_back(pose.t->data[2]);
+            networktables_pose_data.push_back(aprilTagInRobotFrame.at<double>(0));
+            networktables_pose_data.push_back(aprilTagInRobotFrame.at<double>(1));
+            networktables_pose_data.push_back(aprilTagInRobotFrame.at<double>(2));
           }
 
           // Send the pose data
@@ -438,6 +473,9 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 
  private:
   DoubleArraySender tagSender_{FLAGS_camera_name};
+
+  cv::Mat rotationCoefficents_;
+  cv::Mat offsetCoefficents_;
   NetworkTablesUtil ntUtil_{};
   std::set<seasocks::WebSocket*> clients_;
   std::mutex mutex_;
