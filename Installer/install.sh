@@ -56,7 +56,7 @@ fi
 cp -R AprilTags/ /apps/
 cp -R  bin/* /apps/bin/
 
-echo "The AprilTags service has been installed and enabled. Run 'AprilTags.sh --update all' in the Cuda project root to sync it to be run."
+echo "The AprilTags service has been installed and enabled. Run 'AprilTags.sh --update' in the Cuda project root to sync it to be run."
 echo "HINT: program not found error? run 'export PATH=\$PATH:/apps/bin' in your session"
 echo "HINT: if sudo will not work, try sudo -i or use the sudo with the binary absolute path (which is required for some commands)"
 # adding the commands in the AddAppstoPaf might help to fix that issue
