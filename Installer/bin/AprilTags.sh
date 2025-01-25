@@ -13,6 +13,8 @@ function help() {
     exit 0
 }
 
+VERSION="1.4 Better Locations (Grape Juice)" # I think having codenames for version could be fun
+
 if [ $# -eq 0 ]; then
     # print help
     help
@@ -61,6 +63,9 @@ while [[ $# -gt 0 ]]; do
       update="t"
       shift # past arguement
       ;;
+    --version)
+      echo $VERSION
+      exit 0
     *|-*|--*)
       echo "Unknown option $1"
       exit 1
@@ -155,6 +160,5 @@ elif [ $update == "t" ]; then
 
     # restart the service
     systemctl start AprilTagsPipeline.service
-
 # end of the args and stuffs
 fi
