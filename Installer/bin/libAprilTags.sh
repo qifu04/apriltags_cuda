@@ -55,13 +55,13 @@ elif [[ $1 == "camIDs" ]]; then
 elif [[ $1 == "getCamLoc" ]]; then
     camlocfile="/apps/AprilTags/data/cameralocations"
     camid=$2
-    if ! [[ -f camlocfile ]]; then
+    if ! [[ -f $camlocfile ]]; then
         echo "cam locations file not found."
         exit 1 # maybe stop using the same number
     fi
     # must have the file, assume that the file is correct
     set -e # just in case
-    locfile=$(tail -n +1 camlocfile)
+    locfile=$(tail -n +1 $camlocfile)
     for line in locfile; do
         if [[ "$2" == "${line[0]}" ]]; then
             echo line[1]
