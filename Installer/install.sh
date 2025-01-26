@@ -16,22 +16,36 @@ else
 	exit 2
 fi
 
-# make sure the directories are present
+# make sure the /opt/AprilTags dir is present
 if [ ! -d /opt/AprilTags ]; then
-    mkdir -p /opt
-fi
-if [ ! -d /bin/AprilTags ]; then
-    mkdir /bin/AprilTags
+    mkdir -p /opt/AprilTags
 fi
 
-# clean out alll of the odd stuff that could be in the AprilTags dir
+# clean out all of the odd stuff that could be in the AprilTags dir
 if ! [[ $preserve == "t" ]]; then
     rm -rf /opt/AprilTags/*
+else
+    rm -rf /opt/AprilTags/bin /opt/AprilTags/AprilTagsManager.sh /opt/AprilTags/args /opt/AprilTags/uninstall.sh
 fi
 
-# copy everything into /bin/AprilTags
-cp -R AprilTags/ /bin/AprilTags/
-cp -R bin/* /bin/AprilTags
+# copy files into places
+cp -R AprilTags/* /opt/AprilTags
+cp -R bin/ /opt/AprilTags
+cp uninstall.sh /opt/AprilTags
+
+# Symlinks!!!
+ln -s /opt/AprilTags/bin/AprilTags.sh /bin/AprilTags
+ln -s /opt/AprilTags/bin/libAprilTags.sh /bin/libAprilTags
+arch=$(uname -m)
+if [[ -f "bin/camerascanner/scanner_${arch}" ]]; then
+    ln -s /opt/AprilTags/bin/camerascanner/"scanner_${arch}" /bin/AprilTags_camerascanner
+else
+    if [[ $arch == "x86_64" ]]; then
+    # x86 can run aarch64 binaries for some reason, so do that
+    ln -s /opt/AprilTags/bin/camerascanner/scanner_aarch64 /bin/AprilTags_camerascanner
+   fi
+   # if not, do nothing!
+fi
 
 # copy the service to the services, refresh, then enable it
 cp AprilTagsPipeline.service /etc/systemd/system

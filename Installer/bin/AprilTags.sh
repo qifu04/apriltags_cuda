@@ -78,7 +78,7 @@ if [ ! -z ${valitem+x} ]; then
     printV "validating arg $valitem..."
     if [[ $valitem == "lockfile" ]]; then
         # check for the existance of the lock
-        PID=$(libAprilTags.sh pid "/opt/AprilTags/Backend/ws_server")
+        PID=$(libAprilTags pid "/opt/AprilTags/Backend/ws_server")
         printV "BackendPID is $backPID. (zero is not running)"
         if [ -f /opt/AprilTags/servicerunning ]; then
             # lockfile is there

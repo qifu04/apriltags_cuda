@@ -5,7 +5,7 @@
 # get proc pid (0 notfound/error, else is the pid)
 function getProcPID() {
     # NOTE: this returns the OLDEST PID
-    paths=$(ps -aux | grep $1 | grep -v 'grep' | grep -v 'libAprilTags.sh pid') #last section removes command syntax for this command
+    paths=$(ps -aux | grep $1 | grep -v 'grep' | grep -v 'libAprilTags pid') #last section removes command syntax for this command
     # the quotes preserve linebreaks
     # rewriting the for loop, since its done in a subshell and causes issues when written normally
     while read line; do
@@ -24,20 +24,10 @@ echoerr() { echo "$@" 1>&2; } # bypass capture by var assigning because std::err
 if [[ $1 == "pid" ]]; then
     getProcPID $2
 elif [[ $1 == "camIDs" ]]; then
-    cd "${0%/*}"/camerascanner
-    # run the go file in the most efficent way possible
-    arch=$(uname -m)
-    if [[ -f "scanner_${arch}" ]]; then
-        ret=$("./AprilTags_scanner_${arch}")
+    if [[ -f /bin/AprilTags_camerascanner ]]; then
+        ret=$(AprilTags_camerascanner)
     else
-    	if [[ $arch == "x86_64" ]]; then
-    	    # x86 can run aarch64 binaries for some reason, so do that
-    	    ret=$("./AprilTags_scanner_aarch64")
-    	    
-    	else
-            echoerr "running go file directly"
-            ret=$(go run main)
-        fi
+        ret=$(go run /opt/AprilTags/bin/camerascanner/scanner.go)
     fi
     
     if [[ "${ret,,}" == *"err"* ]] || [[ "${ret,,}" == *"fault"* ]]; then
