@@ -53,6 +53,6 @@ chmod 755 /etc/systemd/system/AprilTagsPipeline.service
 systemctl daemon-reload
 systemctl enable AprilTagsPipeline.service # not now, since files might not be there
 
-echo "The AprilTags service has been installed and enabled. Run 'AprilTags.sh --update' in the Cuda project root to sync it to be run."
+echo "The AprilTags service has been installed and enabled. Run 'AprilTags --update' in the Cuda project root to sync it to be run."
 echo "No hints! The code should work just fine if you run sudo on the binaries as needed."
 # adding the commands in the AddAppstoPaf might help to fix that issue

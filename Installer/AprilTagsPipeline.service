@@ -4,9 +4,9 @@ Description=Start/teardown apriltags stuff
 
 [Service]
 Type=oneshot
-ExecStart=/bin/AprilTags/AprilTagsManager.sh start
+ExecStart=/opt/AprilTags/AprilTagsManager.sh start
 RemainAfterExit=true
-ExecStop=/bin/AprilTags/ApriltagsManager.sh stop
+ExecStop=/opt/AprilTags/ApriltagsManager.sh stop
 StandardOutput=journal
 #Restart=always
 

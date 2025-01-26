@@ -66,6 +66,7 @@ while [[ $# -gt 0 ]]; do
     --version)
       echo $VERSION
       exit 0
+      ;;
     *|-*|--*)
       echo "Unknown option $1"
       exit 1

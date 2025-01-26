@@ -11,7 +11,7 @@ if [ ! -f '/opt/AprilTags/Backend/ws_server' ]; then
 fi
 
 function killIfRunning() {
-    PID=`libAprilTags.sh pid $1`
+    PID=`libAprilTags pid $1`
     if [ $PID -ne 0 ]; then
         kill -2 $PID
         return 1
@@ -33,7 +33,7 @@ if [[ $1 == "start" ]]; then
         # now check if it is allowed to remove the lockfile..
         if [[ $autormlockfile == "true" ]]; then
         	# check for if the services are fine
-        	status=$(AprilTags.sh -V lockfile)
+        	status=$(AprilTags -V lockfile)
         	lockfilestatus=$(echo $status | awk -F ";" '{print $1}' | awk -F "=" '{print $2}')
         	if [[ $lockfilestatus == "false" ]]; then
         		# the lockfile is gone, and nothing is wrong
@@ -51,7 +51,7 @@ if [[ $1 == "start" ]]; then
 
     touch /opt/AprilTags/servicerunning
     
-    cams=`libAprilTags.sh camIDs`
+    cams=`libAprilTags camIDs`
     if [[ $? -ne 0 ]]; then
     	echo "No cameras found or something. Try plugging some in, or else the cameras are not being seen."
     	exit 5
