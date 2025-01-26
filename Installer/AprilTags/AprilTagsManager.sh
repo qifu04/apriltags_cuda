@@ -23,7 +23,7 @@ function killIfRunning() {
 jetson_clocks || true 1>&2 >> /dev/null
 
 #open source for args
-source /otp/AprilTags/args
+source /opt/AprilTags/args
 
 if [[ $1 == "start" ]]; then
     # check for lock
