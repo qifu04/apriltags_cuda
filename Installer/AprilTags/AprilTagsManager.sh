@@ -5,7 +5,7 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
-if [ ! -f '/apps/AprilTags/Backend/ws_server' ]; then
+if [ ! -f '/opt/AprilTags/Backend/ws_server' ]; then
     echo "missing backend"
     exit 2
 fi
@@ -23,13 +23,13 @@ function killIfRunning() {
 jetson_clocks || true 1>&2 >> /dev/null
 
 #open source for args
-source /opt/AprilTags/args
+source /otp/AprilTags/args
 
 if [[ $1 == "start" ]]; then
     # check for lock
     if [ -f "/opt/AprilTags/servicerunning" ]; then
         echo "service is already running"
-        echo "HINT: if you think the service is not running, then run 'AprilTags.sh --validate lockfile'"
+        echo "HINT: if you think the service is not running, then run 'AprilTags --validate lockfile'"
         # now check if it is allowed to remove the lockfile..
         if [[ $autormlockfile == "true" ]]; then
         	# check for if the services are fine
@@ -57,9 +57,6 @@ if [[ $1 == "start" ]]; then
     	exit 5
     fi
     
-    # cd again just to be safe (that lib WILL cd)
-    cd /opt/AprilTags
-    
     # iterate
     for cam in $cams; do
         # set items off of the output cam
@@ -67,7 +64,7 @@ if [[ $1 == "start" ]]; then
         
         # not yet
         # get the offset file
-        #camLoc=$(libAprilTags.sh getCamLoc $camID)
+        #camLoc=$(libAprilTags getCamLoc $camID)
         #if [[ $? -ne 0 ]]; then
         #    echo "FAILED TO FIND CAMERA OFFSET ${camID}, EXITING..."
         #    exit 6
@@ -98,7 +95,7 @@ elif [[ $1 == "stop" ]]; then
     	    	# assume its a PID that belongs to ws_server if running
     	    	if ps -p $p > /dev/null
     	    	then
-    	    	    timeout -s INT 5s 'libAprilTags.sh killHandler ${p}' &
+    	    	    timeout -s INT 5s 'libAprilTags killHandler ${p}' &
     	        fi
     	    fi
     	done < /opt/AprilTags/servicerunning

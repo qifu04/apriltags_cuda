@@ -6,6 +6,12 @@ if [ $EUID -ne 0 ]; then
 	exit 1
 fi
 
+function unlnifthere() {
+    if [ -h $1 ]; then
+        unlink $1
+    fi
+}
+
 # stop the service then it dies, then remove it
 systemctl disable AprilTagsPipeline.service
 rm /etc/systemd/system/AprilTagsPipeline.service
@@ -13,9 +19,9 @@ systemctl daemon-reload
 
 rm -rf /opt/AprilTags
 
-# for now, the stuff in bin is going to be manually specified, but later it can be read from the bin here
-if [ -d /bin/AprilTags ]; then
-	rm -rf /bin/AprilTags
-fi
+# rm the bin symlinks
+unlnifthere /bin/AprilTags
+unlnifthere /bin/libAprilTags
+unlnifthere /bin/AprilTags_camerascanner
 
 echo "The AprilTags service has been uninstalled from your system!"
