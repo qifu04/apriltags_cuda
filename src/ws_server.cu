@@ -127,7 +127,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
   }
 
   bool parsecal_file(const std::string& cal_filepath, // why specify this if it is not once touched?
-                     std::string& position_filepath,
+                     const std::string& position_filepath,
                      frc971::apriltag::CameraMatrix* cam,
                      frc971::apriltag::DistCoeffs* dist) {
     std::ifstream f(cal_filepath);
@@ -218,11 +218,11 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     cv::flip(bgr_img, *output_img, -1);
   }
   void startReadAndSendThread(const int camera_idx, const std::string& cal_file,
-                              const std::string& location_file,
+                              const std::string& position_file,
                               const bool rotate_vertical,
                               const bool rotate_horizontal) {
     read_thread_ = std::thread(&AprilTagHandler::readAndSend, this, camera_idx,
-                               cal_file, location_file, rotate_vertical, rotate_horizontal);
+                               cal_file, position_file, rotate_vertical, rotate_horizontal);
   }
 
   void joinReadAndSendThread() {
@@ -249,7 +249,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
   }
 
   void readAndSend(const int camera_idx, const std::string& cal_file,
-                   const std::string& location_file,
+                   const std::string& position_file,
                    const bool rotate_vertical, const bool rotate_horizontal) {
     std::cout << "Enabling video capture" << std::endl;
     bool camera_started = false;
@@ -302,9 +302,9 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     // Read Camera Matrix and Distortion Coeffs from file.
     frc971::apriltag::CameraMatrix cam;
     frc971::apriltag::DistCoeffs dist;
-    if (!parsecal_file(cal_file, location_file, &cam, &dist)) {
+    if (!parsecal_file(cal_file, position_file, &cam, &dist)) {
       std::cout << "Unable to read parameters from cal file " << cal_file
-                << "or parameters from location file " << location_file
+                << "or parameters from location file " << position_file
                 << std::endl;
       return;
     }
@@ -519,7 +519,7 @@ int main(int argc, char* argv[]) {
   }
   
   if (!std::filesystem::exists(FLAGS_position_file)) {
-    LOG(ERROR) << "position files does not exist: " << FLAGS_location_file;
+    LOG(ERROR) << "position files does not exist: " << FLAGS_position_file;
     return 1;
   }
 
@@ -531,7 +531,7 @@ int main(int argc, char* argv[]) {
     server->addWebSocketHandler("/ws", handler);
 
     handler->startReadAndSendThread(FLAGS_camera_idx, FLAGS_cal_file,
-                                    FLAGS_location_file,
+                                    FLAGS_position_file,
                                     FLAGS_rotate_vertical,
                                     FLAGS_rotate_horizontal);
     int port; // why reassign it?
