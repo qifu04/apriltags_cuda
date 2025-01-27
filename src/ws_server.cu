@@ -430,16 +430,6 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
             cv::Mat aprilTagInCameraFrameAsMat = cv::Mat(aprilTagInCameraFrame);
             cv::Mat aprilTagInRobotFrame = rotationCoefficents_ * aprilTagInCameraFrameAsMat + offsetCoefficents_;
             
-            //TODO: Unimplemented translation code (Crystal to add)
-            // this manner of adding offsets could be wrong
-            // iterate through poses and add offsets
-            for(int x = 0; x < 3; x++ ) {
-                pose.t->data[x] += offsetCoefficents_[x];
-            }
-            for(int x = 0; x < 9; x ++ ) {
-                pose.R->data[x] += rotationCoefficents_[x];
-            }
-            
             record["translation"] = {aprilTagInRobotFrame.at<double>(0), aprilTagInRobotFrame.at<double>(1), aprilTagInRobotFrame.at<double>(2)};
 
             detections_record["detections"].push_back(record);
