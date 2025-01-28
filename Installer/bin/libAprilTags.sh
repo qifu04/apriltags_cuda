@@ -51,14 +51,19 @@ elif [[ $1 == "getCamLoc" ]]; then
     fi
     # must have the file, assume that the file is correct
     set -e # just in case
-    while read line; do
+    found=false
+    cat $camlocfile | while read line || [ -n "$line" ] ; do
         lineparts=($line)
         if [[ "$2" == "${lineparts[0]}" ]] && [[ "$2" != "id" ]]; then
-            echo $lineparts[1]
-            exit 0
+            echo ${lineparts[1]}
+            found=true
+            # exit does nothing
         fi
-    done < $locfile
-    echo "id not found"
+    done
+    if found; then
+        exit 0
+    fi
+    echoerr "id not found"
     exit 1 # again, same code
 elif [[ $1 == "killHandler" ]]; then
     if [[ "$2" =~ ^-?[0-9]+$ ]]; then # regex to find int
