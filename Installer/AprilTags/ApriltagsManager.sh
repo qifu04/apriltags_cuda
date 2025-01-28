@@ -80,7 +80,7 @@ if [[ $1 == "start" ]]; then
         fi
         
         camFilePlace="/apps/AprilTags/data/camlocs/cam-${camLoc}-offset.json"
-        if ! [[ -f $camFilePlace ]];
+        if ! [[ -f $camFilePlace ]]; then
             echo "FAILED TO FIND CAMERA OFFSET FILE FOR CAM ${camID} with location ${camLoc} (file missing ${camFilePlace}"
             exit 6
         fi
