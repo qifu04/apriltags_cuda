@@ -64,11 +64,17 @@ if [[ $1 == "start" ]]; then
         
         # not yet
         # get the offset file
-        #camLoc=$(libAprilTags getCamLoc $camID)
-        #if [[ $? -ne 0 ]]; then
-        #    echo "FAILED TO FIND CAMERA OFFSET ${camID}, EXITING..."
-        #    exit 6
-        #fi
+        camLoc=$(libAprilTags.sh getCamLoc $camID)
+        if [[ $? -ne 0 ]]; then
+            echo "FAILED TO FIND CAMERA OFFSET ${camID}, EXITING..."
+            exit 6
+        fi
+        
+        camFilePlace="/opt/AprilTags/data/camlocs/cam-${camLoc}-offset.json"
+        if ! [[ -f $camFilePlace ]]; then
+            echo "FAILED TO FIND CAMERA OFFSET FILE FOR CAM ${camID} with location ${camLoc} (file missing ${camFilePlace}"
+            exit 6
+        fi
         
         # ensure that the calibration file exists
         if ! [[ -f /opt/AprilTags/data/calibration/calibrationmatrix_${camID}.json ]]; then
