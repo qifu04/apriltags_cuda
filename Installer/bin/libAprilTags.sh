@@ -51,9 +51,9 @@ elif [[ $1 == "getCamLoc" ]]; then
     fi
     # must have the file, assume that the file is correct
     set -e # just in case
-    locfile=$(tail -n +1 $camlocfile)
+    locfile=$(cat $camlocfile)
     for line in locfile; do
-        if [[ "$2" == "${line[0]}" ]]; then
+        if [[ "$2" == "${line[0]}" ]] && [[ "$2" != "id" ]]; then
             echo line[1]
             exit 0
         fi

@@ -61,10 +61,9 @@ if [[ $1 == "start" ]]; then
     for cam in $cams; do
         # set items off of the output cam
         IFS=: read -r camID camIndex <<< "$cam"
-        
-        # not yet
+
         # get the offset file
-        camLoc=$(libAprilTags.sh getCamLoc $camID)
+        camLoc=$(libAprilTags getCamLoc $camID)
         if [[ $? -ne 0 ]]; then
             echo "FAILED TO FIND CAMERA OFFSET ${camID}, EXITING..."
             exit 6
