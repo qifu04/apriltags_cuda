@@ -51,13 +51,13 @@ elif [[ $1 == "getCamLoc" ]]; then
     fi
     # must have the file, assume that the file is correct
     set -e # just in case
-    locfile=$(cat $camlocfile)
-    for line in locfile; do
-        if [[ "$2" == "${line[0]}" ]] && [[ "$2" != "id" ]]; then
-            echo line[1]
+    while read line; do
+        lineparts=($line)
+        if [[ "$2" == "${lineparts[0]}" ]] && [[ "$2" != "id" ]]; then
+            echo $lineparts[1]
             exit 0
         fi
-    done
+    done < $locfile
     echo "id not found"
     exit 1 # again, same code
 elif [[ $1 == "killHandler" ]]; then
