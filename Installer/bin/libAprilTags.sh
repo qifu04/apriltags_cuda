@@ -60,7 +60,7 @@ elif [[ $1 == "getCamLoc" ]]; then
             # exit does nothing
         fi
     done
-    if found; then
+    if [[ found ]]; then
         exit 0
     fi
     echoerr "id not found"
