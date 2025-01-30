@@ -81,6 +81,13 @@ if [[ $1 == "start" ]]; then
             exit 6
         fi
         
+        # set camName
+        if [[ ${camLoc} == "TEMPLATE" ]]; then
+            camName="cam${camID}"
+        else
+            camName="${camLoc}"
+        fi
+        
         # set args
         args=`$backend` # this actually is magical because of the weird eval thing
         # https://stackoverflow.com/questions/5112663/bash-variable-reevaluation
