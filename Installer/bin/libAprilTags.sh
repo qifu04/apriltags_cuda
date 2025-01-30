@@ -68,7 +68,7 @@ elif [[ $1 == "getCamLoc" ]]; then
 elif [[ $1 == "killHandler" ]]; then
     if [[ "$2" =~ ^-?[0-9]+$ ]]; then # regex to find int
         # assume its a PID that belongs to ws_server if running
-        if ps -p $1 > /dev/null
+        if ps -p $2 > /dev/null
         then
             killpid=$2
         fi
@@ -81,4 +81,8 @@ elif [[ $1 == "killHandler" ]]; then
     trap 'kill -9 ${killpid}' INT
 
     kill -2 ${killpid}
+    
+    while [ -d "/proc/$killpid" ]; do
+        sleep 0.1 $ wait $!
+    done
 fi
