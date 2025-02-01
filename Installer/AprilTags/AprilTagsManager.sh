@@ -57,6 +57,8 @@ if [[ $1 == "start" ]]; then
     	exit 5
     fi
     
+    cd /opt/AprilTags # seasocks depends on this
+    
     # iterate
     for cam in $cams; do
         # set items off of the output cam
