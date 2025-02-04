@@ -40,7 +40,7 @@ extern "C" {
 }
 
 // todo: make this work
-//#define TAGSIZE = 0.1143 // tag size, in meters
+#define TAGSIZE 0.1143 // tag size, in meters
 
 using json = nlohmann::json;
 
@@ -325,7 +325,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
 
     // Setup the detection info struct for use down below.
     apriltag_detection_info_t info;
-    info.tagsize = 0.1143;  // Measured in meters, with a ruler, for tag family 36h11
+    info.tagsize = TAGSIZE;  // Measured in meters, with a ruler, for tag family 36h11
     info.fx = cam.fx;
     info.fy = cam.fy;
     info.cx = cam.cx;
