@@ -129,7 +129,7 @@ class AprilTagHandler : public seasocks::WebSocket::Handler {
     });
   }
 
-  bool parsecal_file(const std::string& cal_filepath, // why specify this if it is not once touched?
+  bool parsecal_file(const std::string& cal_filepath,
                      const std::string& position_filepath,
                      frc971::apriltag::CameraMatrix* cam,
                      frc971::apriltag::DistCoeffs* dist) {
@@ -513,7 +513,6 @@ int main(int argc, char* argv[]) {
     LOG(ERROR) << "camera_name is required";
     return 1;
   }
-  //gflags::ParseCommandLineFlags(&argc, &argv, true); // this is done once before
 
   if (!std::filesystem::exists(FLAGS_cal_file)) {
     LOG(ERROR) << "calibration file does not exist: " << FLAGS_cal_file;
@@ -521,7 +520,7 @@ int main(int argc, char* argv[]) {
   }
   
   if (!std::filesystem::exists(FLAGS_position_file)) {
-    LOG(ERROR) << "position files does not exist: " << FLAGS_position_file;
+    LOG(ERROR) << "position file does not exist: " << FLAGS_position_file;
     return 1;
   }
 
@@ -536,7 +535,7 @@ int main(int argc, char* argv[]) {
                                     FLAGS_position_file,
                                     FLAGS_rotate_vertical,
                                     FLAGS_rotate_horizontal);
-    int port; // why reassign it?
+    int port;
     if (FLAGS_port == -1) {
       // User did not specify the port so make it relative to
       // the camera idx to support multiple cameras seamlessly.
