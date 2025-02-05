@@ -51,7 +51,12 @@ fi
 cp AprilTagsPipeline.service /etc/systemd/system
 chmod 755 /etc/systemd/system/AprilTagsPipeline.service
 systemctl daemon-reload
-systemctl enable AprilTagsPipeline.service # not now, since files might not be there
+# start service if preserve is there, and thus files will be there
+if [[ $preserve == "t" ]]; then
+    systemctl enable --now AprilTagsPipeline.service # start now since service files should still be there
+else
+    systemctl enable AprilTagsPipeline.service # do not start now, since service files are not there
+fi
 
 echo "The AprilTags service has been installed and enabled. Run 'AprilTags --update' in the Cuda project root to sync it to be run."
 echo "No hints! The code should work just fine if you run sudo on the binaries as needed."
