@@ -1,0 +1,30 @@
+name: C++ Lint
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    name: Lint C++ Code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install clang-format and cppcheck
+        run: sudo apt-get install -y clang-format cppcheck
+
+      - name: Run clang-format
+        run: |
+          find . -name '*.cpp' -o -name '*.hpp' -o -name '*.h' | xargs clang-format -i
+          git diff --exit-code || (echo "Code is not formatted. Run clang-format locally." && exit 1)
+
+      - name: Run cppcheck
+        run: |
+          cppcheck --enable=all --error-exitcode=1 --inline-suppr --force --quiet .
