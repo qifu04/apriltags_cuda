@@ -47,7 +47,7 @@ jobs:
             git push origin ${{ github.head_ref }}
           fi
 
-      - name: Run cppcheck
+      - name: Run cppcheck (C++ Mode)
         run: |
           FILES=$(find . -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" \) | tr '\n' ' ')
           if [ -z "$FILES" ]; then
@@ -56,7 +56,7 @@ jobs:
           fi
           
           echo "Running cppcheck on: $FILES"
-          cppcheck --enable=all --error-exitcode=1 --inline-suppr --force --quiet \
+          cppcheck --enable=all --error-exitcode=1 --inline-suppr --force --quiet --language=c++ \
             --suppress=missingInclude \
             --suppress=unusedFunction \
             --suppress=unmatchedSuppression $FILES
