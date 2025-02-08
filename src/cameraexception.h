@@ -2,8 +2,8 @@
 #define CAMERAEXCEPTION_H_
 
 class CameraException : public std::exception {
- public:
-  const char* what() const noexcept override {
+public:
+  const char *what() const noexcept override {
     return "Error: No camera detected.";
   }
 };

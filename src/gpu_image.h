@@ -1,8 +1,7 @@
 #ifndef FRC971_ORIN_GPU_IMAGE_H_
 #define FRC971_ORIN_GPU_IMAGE_H_
 
-template <typename T>
-struct GpuImage {
+template <typename T> struct GpuImage {
   typedef T type;
   T *data;
   size_t rows;
@@ -11,4 +10,4 @@ struct GpuImage {
   size_t step;
 };
 
-#endif  // FRC971_ORIN_GPU_IMAGE_H_
+#endif // FRC971_ORIN_GPU_IMAGE_H_
