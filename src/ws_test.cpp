@@ -48,19 +48,19 @@ using namespace cv;
 using namespace seasocks;
 
 class MyHandler : public WebSocket::Handler {
- public:
-  explicit MyHandler(Server* server) : _server(server) {}
+public:
+  explicit MyHandler(Server *server) : _server(server) {}
 
-  void onConnect(WebSocket* connection) override {
+  void onConnect(WebSocket *connection) override {
     _connections.insert(connection);
     std::cout << "Connected: " << connection->getRequestUri() << " : "
               << formatAddress(connection->getRemoteAddress())
               << "\nCredentials: " << *(connection->credentials()) << "\n";
   }
 
-  void onData(WebSocket* connection, const char* data) override {}
+  void onData(WebSocket *connection, const char *data) override {}
 
-  void sendImage(const cv::Mat& image) {
+  void sendImage(const cv::Mat &image) {
     for (auto c : _connections) {
       std::vector<uchar> buf;
       cv::imencode(".jpg", image, buf);
@@ -68,15 +68,15 @@ class MyHandler : public WebSocket::Handler {
     }
   }
 
-  void onDisconnect(WebSocket* connection) override {
+  void onDisconnect(WebSocket *connection) override {
     _connections.erase(connection);
     std::cout << "Disconnected: " << connection->getRequestUri() << " : "
               << formatAddress(connection->getRemoteAddress()) << "\n";
   }
 
- private:
-  std::set<WebSocket*> _connections;
-  Server* _server;
+private:
+  std::set<WebSocket *> _connections;
+  Server *_server;
 };
 
 void send_data(std::shared_ptr<MyHandler> handler) {
@@ -87,7 +87,7 @@ void send_data(std::shared_ptr<MyHandler> handler) {
   }
 }
 
-int main(int /*argc*/, const char* /*argv*/[]) {
+int main(int /*argc*/, const char * /*argv*/[]) {
   auto logger = std::make_shared<PrintfLogger>(Logger::Level::Debug);
 
   Server server(logger);
