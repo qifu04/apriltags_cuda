@@ -41,9 +41,16 @@ jobs:
             git push origin ${{ github.head_ref }}
           fi
 
-      - name: Run cppcheck
-        run: |
-          cppcheck --enable=all --error-exitcode=1 --inline-suppr --force --quiet \
-            --suppress=missingInclude \
-            --suppress=unusedFunction \
-            --suppress=unmatchedSuppression
+          - name: Run cppcheck
+          run: |
+            FILES=$(find . -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" \))
+            if [ -z "$FILES" ]; then
+              echo "No C or C++ source files found. Skipping cppcheck."
+              exit 0
+            fi
+            
+            cppcheck --enable=all --error-exitcode=1 --inline-suppr --force --quiet \
+              --suppress=missingInclude \
+              --suppress=unusedFunction \
+              --suppress=unmatchedSuppression $FILES
+  
