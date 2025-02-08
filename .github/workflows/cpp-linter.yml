@@ -1,4 +1,4 @@
-name: C++ Lint
+name: C++ Lint and Auto-Fix
 
 on:
   push:
@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write  # Required for pushing auto-fix commits
+
 jobs:
   lint:
     name: Lint C++ Code
@@ -16,14 +19,19 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Ensure we have full commit history for pushing changes
 
       - name: Install clang-format and cppcheck
         run: sudo apt-get install -y clang-format cppcheck
 
-      - name: Run clang-format
+      - name: Run clang-format and fix issues
         run: |
           find . -name '*.cpp' -o -name '*.hpp' -o -name '*.h' | xargs clang-format -i
-          git diff --exit-code || (echo "Code is not formatted. Run clang-format locally." && exit 1)
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add .
+          git diff --cached --quiet || (git commit -m "Auto-format C++ code using clang-format" && git push)
 
       - name: Run cppcheck
         run: |
