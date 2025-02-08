@@ -57,6 +57,7 @@ jobs:
           
           echo "Running cppcheck on: $FILES"
           cppcheck --enable=all --error-exitcode=1 --inline-suppr --force --quiet --language=c++ \
+            --suppress=missingInclude \
             --suppress=missingIncludeSystem \
             --suppress=unusedStructMember \
             --suppress=noExplicitConstructor \
@@ -65,4 +66,3 @@ jobs:
             --suppress=cstyleCast \
             --suppress=unusedFunction \
             --suppress=unmatchedSuppression $FILES
-            --suppress=missingInclude $FILES
