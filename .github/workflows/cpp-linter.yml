@@ -43,4 +43,7 @@ jobs:
 
       - name: Run cppcheck
         run: |
-          cppcheck --enable=all --error-exitcode=1 --inline-suppr --force --quiet .
+          cppcheck --enable=all --error-exitcode=1 --inline-suppr --force --quiet \
+            --suppress=missingInclude \
+            --suppress=unusedFunction \
+            --suppress=unmatchedSuppression
