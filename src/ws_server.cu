@@ -40,7 +40,7 @@ extern "C" {
 }
 
 // todo: make this work
-#define TAGSIZE 0.1143 // tag size, in meters
+#define TAGSIZE 0.1651 // tag size, in meters
 
 using json = nlohmann::json;
 
