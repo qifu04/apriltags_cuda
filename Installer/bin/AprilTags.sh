@@ -13,7 +13,7 @@ function help() {
     exit 0
 }
 
-VERSION="1.4 Better Locations (Grape Juice)" # I think having codenames for version could be fun
+VERSION="1.5 Better Robot Location Data (Orange Juice)" # This is still arbitrary
 
 if [ $# -eq 0 ]; then
     # print help
@@ -66,6 +66,11 @@ while [[ $# -gt 0 ]]; do
     --version)
       echo $VERSION
       exit 0
+      ;;
+    -f|--force)
+      # this makes some things just happen, such as overwriting configs for cams
+      force="t"
+      shift
       ;;
     *|-*|--*)
       echo "Unknown option $1"
@@ -129,6 +134,18 @@ elif [ $update == "t" ]; then
         printV "HINT: This can be an issue using sudo -i, meaning you need to use the script absolute path without the -i in sudo"
         exit 21
     fi
+    
+    # backup the running config
+    camlocsconfig="/opt/AprilTags/data/camlocations"
+    robotconfig="/opt/AprilTags/data/robot.txt"
+    if [[ -f $camlocsconfig ]] && [[ $force != "t" ]] ; then
+        printV "Found running config, moving it off to preserve"
+        cp $camlocsconfig /tmp/ApriltagsCamlocs
+    fi
+    if [[ -f $robotconfig ]] && [[ $force != "t" ]] ; then
+        printV "Found robot, moving it off to preserve"
+        cp $camlocsconfig /tmp/ApriltagsRobot
+    fi
 
     # disable the service to make sure stuff is ok
     systemctl stop AprilTagsPipeline.service
@@ -157,7 +174,21 @@ elif [ $update == "t" ]; then
         cp -R public/ /opt/AprilTags/public
     fi
     
-    printV "The files were sucessfully coppied"
+    # move the config file back if it is there
+    if [[ -f /tmp/ApriltagsCamlocs ]]; then
+        # copy the config back
+        printV "putting the config back"
+        cp /tmp/ApriltagsCamlocs $camlocsconfig
+        rm /tmp/ApriltagsCamlocs
+    fi
+    if [[ -f /tmp/ApriltagsRobot ]]; then
+        # copy the config back
+        printV "putting the robo config back"
+        cp /tmp/ApriltagsRobot $robotconfig
+        rm /tmp/ApriltagsRobot
+    fi
+    
+    printV "The files were sucessfully copied"
 
     # restart the service
     systemctl start AprilTagsPipeline.service

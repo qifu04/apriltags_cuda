@@ -55,6 +55,7 @@ elif [[ $1 == "getCamLoc" ]]; then
     cat $camlocfile | while read line || [ -n "$line" ] ; do
         lineparts=($line)
         if [[ "$2" == "${lineparts[0]}" ]] && [[ "$2" != "id" ]]; then
+            # do note, this will happily pass "NOT-INSTALLED" as its return value, the manager will die when it gets this
             echo ${lineparts[1]}
             found=true
             # exit does nothing
@@ -85,4 +86,24 @@ elif [[ $1 == "killHandler" ]]; then
     while [ -d "/proc/$killpid" ]; do
         sleep 0.1 $ wait $!
     done
+elif [[ $1 == "getRobot" ]]; then
+    if [[ $2 == "ignoreNoRobot" ]]; then
+        ignoreMissingRobotArg=true
+    fi
+    robotfile="/opt/AprilTags/data/robot.txt"
+    if ! [[ -f $robotfile ]]; then
+        echo "robot.txt file not found."
+        exit 1 # maybe stop using the same number
+    fi
+    robot=$(cat $robotfile)
+    # verify that the file is not empty and if it is return cam if issues or error
+    if [[ ! -z ${robot+x} ]]; then
+        echo $robot
+        exit 0
+    elif [[ ignoreMissingRobotArg ]]; then
+        echo "cam"
+        exit 0
+    fi
+    echoerr "id not found"
+    exit 1 # again, same code
 fi
