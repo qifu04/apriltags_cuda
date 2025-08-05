@@ -41,16 +41,6 @@ template <typename T> struct True {
   }
 };
 
-// Computes and returns the scratch space needed for DeviceRadixSort::SortKeys
-// of the provided key with the provided number of elements.
-template <typename T> static size_t RadixSortScratchSpace(size_t elements) {
-  size_t temp_storage_bytes = 0;
-  QuadBoundaryPointDecomposer decomposer;
-  cub::DeviceRadixSort::SortKeys(nullptr, temp_storage_bytes, (T *)(nullptr),
-                                 (T *)(nullptr), elements, decomposer);
-  return temp_storage_bytes;
-}
-
 // Computes and returns the scratch space needed for DeviceSelect::If of the
 // provided type Tin, to be written to the provided type Tout, for the provided
 // number of elements.  num_markers is the device pointer used to hold the
@@ -143,8 +133,6 @@ GpuDetector::GpuDetector(size_t width, size_t height,
       peak_extents_device_(kMaxBlobs), camera_matrix_(camera_matrix),
       distortion_coefficients_(distortion_coefficients),
       fit_quads_device_(kMaxBlobs),
-      radix_sort_tmpstorage_device_(RadixSortScratchSpace<QuadBoundaryPoint>(
-          union_marker_pair_device_.size())),
       temp_storage_compressed_union_marker_pair_device_(
           DeviceSelectIfScratchSpace<QuadBoundaryPoint, QuadBoundaryPoint>(
               union_marker_pair_device_.size(),
@@ -820,10 +808,17 @@ void GpuDetector::Detect(const uint8_t *image) {
              union_marker_pair_device_.size());
 
     // Now, sort just the keys to group like points.
-    size_t temp_storage_bytes = radix_sort_tmpstorage_device_.size();
+    size_t temp_storage_bytes = 0;
     QuadBoundaryPointDecomposer decomposer;
     CHECK_CUDA(cub::DeviceRadixSort::SortKeys(
-        radix_sort_tmpstorage_device_.get(), temp_storage_bytes,
+        nullptr, temp_storage_bytes, compressed_union_marker_pair_device_.get(),
+        sorted_union_marker_pair_device_.get(),
+        num_compressed_union_marker_pair_host, decomposer,
+        QuadBoundaryPoint::kRepEndBit, QuadBoundaryPoint::kBitsInKey,
+        stream_.get()));
+    GpuMemory<uint8_t> radix_sort_tmpstorage_device(temp_storage_bytes);
+    CHECK_CUDA(cub::DeviceRadixSort::SortKeys(
+        radix_sort_tmpstorage_device.get(), temp_storage_bytes,
         compressed_union_marker_pair_device_.get(),
         sorted_union_marker_pair_device_.get(),
         num_compressed_union_marker_pair_host, decomposer,
@@ -952,11 +947,17 @@ void GpuDetector::Detect(const uint8_t *image) {
 
   {
     // Sort based on the angle.
-    size_t temp_storage_bytes = radix_sort_tmpstorage_device_.size();
+    size_t temp_storage_bytes = 0;
     QuadIndexPointDecomposer decomposer;
 
     CHECK_CUDA(cub::DeviceRadixSort::SortKeys(
-        radix_sort_tmpstorage_device_.get(), temp_storage_bytes,
+        nullptr, temp_storage_bytes, selected_blobs_device_.get(),
+        sorted_selected_blobs_device_.get(), num_selected_blobs_host,
+        decomposer, IndexPoint::kRepEndBit, IndexPoint::kBitsInKey,
+        stream_.get()));
+    GpuMemory<uint8_t> radix_sort_tmpstorage_device(temp_storage_bytes);
+    CHECK_CUDA(cub::DeviceRadixSort::SortKeys(
+        radix_sort_tmpstorage_device.get(), temp_storage_bytes,
         selected_blobs_device_.get(), sorted_selected_blobs_device_.get(),
         num_selected_blobs_host, decomposer, IndexPoint::kRepEndBit,
         IndexPoint::kBitsInKey, stream_.get()));
@@ -1030,11 +1031,16 @@ void GpuDetector::Detect(const uint8_t *image) {
 
   {
     // Sort based on the angle.
-    size_t temp_storage_bytes = radix_sort_tmpstorage_device_.size();
+    size_t temp_storage_bytes = 0;
     PeakDecomposer decomposer;
 
     CHECK_CUDA(cub::DeviceRadixSort::SortKeys(
-        radix_sort_tmpstorage_device_.get(), temp_storage_bytes,
+        nullptr, temp_storage_bytes, compressed_peaks_device_.get(),
+        sorted_compressed_peaks_device_.get(), num_compressed_peaks_host,
+        decomposer, 0, PeakDecomposer::kBitsInKey, stream_.get()));
+    GpuMemory<uint8_t> radix_sort_tmpstorage_device(temp_storage_bytes);
+    CHECK_CUDA(cub::DeviceRadixSort::SortKeys(
+        radix_sort_tmpstorage_device.get(), temp_storage_bytes,
         compressed_peaks_device_.get(), sorted_compressed_peaks_device_.get(),
         num_compressed_peaks_host, decomposer, 0, PeakDecomposer::kBitsInKey,
         stream_.get()));
