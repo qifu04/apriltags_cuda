@@ -5,6 +5,13 @@ cmake_minimum_required(VERSION 3.16 FATAL_ERROR)  # Ensure user has a compatible
 
 project(ApriltagCuda LANGUAGES CUDA CXX)  # Set project name and specify the languages used
 
+# Set the CUDA architectures to build for.
+# 7.5: Turing, 8.6: Ampere, 8.9: Ada, 9.0: Hopper
+set(CMAKE_CUDA_ARCHITECTURES "75;86;89;90")
+option(WITH_TESTS "Build tests" OFF)
+option(WITH_EXAMPLES "Build examples" OFF)
+
+
 # Use modern C++ for host code but a slightly older standard for CUDA.
 # The Docker image ships with a CUDA toolkit that does not yet provide
 # full C++20 support. Building the host portion with C++20 is fine, but

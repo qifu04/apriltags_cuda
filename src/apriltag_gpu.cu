@@ -130,7 +130,7 @@ GpuDetector::GpuDetector(size_t width, size_t height,
                                 (decimated_height_ - 2) * 4),
       compressed_union_marker_pair_device_(union_marker_pair_device_.size()),
       sorted_union_marker_pair_device_(union_marker_pair_device_.size()),
-      extents_device_(union_marker_pair_device_.size()),
+      extents_device_(kMaxBlobs),
       selected_extents_device_(kMaxBlobs),
       selected_blobs_device_(union_marker_pair_device_.size()),
       sorted_selected_blobs_device_(selected_blobs_device_.size()),
@@ -144,7 +144,7 @@ GpuDetector::GpuDetector(size_t width, size_t height,
       distortion_coefficients_(distortion_coefficients),
       fit_quads_device_(kMaxBlobs),
       radix_sort_tmpstorage_device_(RadixSortScratchSpace<QuadBoundaryPoint>(
-          sorted_union_marker_pair_device_.size())),
+          union_marker_pair_device_.size())),
       temp_storage_compressed_union_marker_pair_device_(
           DeviceSelectIfScratchSpace<QuadBoundaryPoint, QuadBoundaryPoint>(
               union_marker_pair_device_.size(),
@@ -161,7 +161,8 @@ GpuDetector::GpuDetector(size_t width, size_t height,
               num_selected_blobs_device_.get())),
       temp_storage_selected_extents_scan_device_(
           DeviceScanInclusiveScanScratchSpace<
-              cub::KeyValuePair<long, MinMaxExtents>>(kMaxBlobs)),
+              cub::KeyValuePair<long, MinMaxExtents>>(
+              union_marker_pair_device_.size())),
       temp_storage_line_fit_scan_device_(
           DeviceScanInclusiveScanByKeyScratchSpace<uint32_t, LineFitPoint>(
               sorted_selected_blobs_device_.size())) {
