@@ -29,8 +29,6 @@ find_package(Threads REQUIRED)
 set(OPENCV_INSTALL_DIR ${CMAKE_BINARY_DIR}/OpenCV-install)
 set(WPILIB_INSTALL_DIR ${CMAKE_BINARY_DIR}/wpilib-install)
 set(CCCL_INSTALL_DIR ${CMAKE_BINARY_DIR}/cccl-install)
-set(SEASOCKS_INSTALL_DIR ${CMAKE_BINARY_DIR}/seasocks-install)
-set(JSON_INSTALL_DIR ${CMAKE_BINARY_DIR}/json-install)
 set(APRILTAG_INSTALL_DIR ${CMAKE_BINARY_DIR}/apriltag-install)
 
 #Determine number of processors for the parallel builds.
@@ -79,27 +77,6 @@ ExternalProject_Add(
 ExternalProject_Get_Property(CCCL SOURCE_DIR)
 set(CCCL_SOURCE_DIR ${SOURCE_DIR})
 
-#Add seasocks package
-ExternalProject_Add(
-    seasocks
-    PREFIX ${CMAKE_BINARY_DIR}/seasocks
-    GIT_REPOSITORY https://github.com/mattgodbolt/seasocks.git
-    GIT_TAG v1.4.6
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${SEASOCKS_INSTALL_DIR}
-    BUILD_COMMAND make -j${NUM_PROCESSORS}
-    INSTALL_COMMAND make install
-)
-
-ExternalProject_Add(
-    json
-    PREFIX ${CMAKE_BINARY_DIR}/json
-    GIT_REPOSITORY https://github.com/nlohmann/json
-    GIT_TAG v3.11.3
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${JSON_INSTALL_DIR} -DJSON_BuildTests=OFF
-    BUILD_COMMAND make -j${NUM_PROCESSORS}
-    INSTALL_COMMAND make install
-)
-
 #Add 971 apriltag package
 ExternalProject_Add(
     apriltag
@@ -112,7 +89,7 @@ ExternalProject_Add(
 )
 
 add_dependencies(wpilib OpenCV)
-add_dependencies(apriltag OpenCV wpilib CCCL seasocks json)
+add_dependencies(apriltag OpenCV wpilib CCCL)
 
 #Set default build type if not specified
 if(NOT CMAKE_BUILD_TYPE)
@@ -192,8 +169,7 @@ include_directories(
     ${OPENCV_INSTALL_DIR}/include/opencv4
     ${WPILIB_INSTALL_DIR}/include/ntcore
     ${WPILIB_INSTALL_DIR}/include/wpiutil
-    ${SEASOCKS_INSTALL_DIR}/include
-    ${JSON_INSTALL_DIR}/include)
+    )
 
 #Add executable for OpenCV CUDA demo
 add_executable(opencv_cuda_demo src/opencv_cuda_demo.cu)
@@ -231,47 +207,6 @@ target_link_libraries(gpu_detector_test
     ${OPENCV_INSTALL_DIR}/lib/libopencv_imgcodecs.so
     glog::glog
     GTest::GTest)
-
-add_executable(ws_test src/ws_test.cpp)
-target_link_libraries(ws_test
-    ${SEASOCKS_INSTALL_DIR}/lib/libseasocks.a
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_core.so
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgproc.so
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_highgui.so
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_videoio.so
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgcodecs.so
-    Threads::Threads
-    ZLIB::ZLIB)
-
-add_executable(ws_server src/ws_server.cu)
-target_link_libraries(ws_server
-    apriltag_cuda
-    ${APRILTAG_INSTALL_DIR}/lib/libapriltag.so
-    ${SEASOCKS_INSTALL_DIR}/lib/libseasocks.a
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_core.so
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgproc.so
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_highgui.so
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_videoio.so
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgcodecs.so
-    ${WPILIB_INSTALL_DIR}/lib/libntcore.so
-    ${WPILIB_INSTALL_DIR}/lib/libwpiutil.so
-    glog::glog
-    Threads::Threads
-    ZLIB::ZLIB)
-
-add_executable(json_test src/json_test.cpp)
-target_link_libraries(json_test
-    apriltag_cuda
-    ${APRILTAG_INSTALL_DIR}/lib/libapriltag.so
-    ${SEASOCKS_INSTALL_DIR}/lib/libseasocks.a
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_core.so
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgproc.so
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_highgui.so
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_videoio.so
-    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgcodecs.so
-    glog::glog
-    Threads::Threads
-    ZLIB::ZLIB)
 
 add_executable(testpic src/testpic.cpp)
 target_link_libraries(testpic
