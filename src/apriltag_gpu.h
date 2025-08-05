@@ -217,12 +217,12 @@ private:
           .cols = width_,
           .step = width_,
       };
-    } else if (memory.size() == width_ * height_ / 4) {
+    } else if (memory.size() == decimated_width_ * decimated_height_) {
       return GpuImage<T>{
           .data = memory.get(),
-          .rows = height_ / 2,
-          .cols = width_ / 2,
-          .step = width_ / 2,
+          .rows = decimated_height_,
+          .cols = decimated_width_,
+          .step = decimated_width_,
       };
     } else {
       LOG(FATAL) << "Unknown image shape";
@@ -232,6 +232,9 @@ private:
   // Size of the image.
   const size_t width_;
   const size_t height_;
+  const size_t decimation_;
+  const size_t decimated_width_;
+  const size_t decimated_height_;
 
   // Detector parameters.
   apriltag_detector_t *tag_detector_;
@@ -271,7 +274,7 @@ private:
   GpuMemory<uint8_t> color_image_device_;
   // Full size gray scale image.
   GpuMemory<uint8_t> gray_image_device_;
-  // Half resolution, gray, decimated image.
+  // Decimated gray image.
   GpuMemory<uint8_t> decimated_image_device_;
   // Intermediates for thresholding.
   GpuMemory<uint8_t> unfiltered_minmax_image_device_;
