@@ -335,7 +335,6 @@ private:
 
   // Temporary storage for each of the steps.
   // TODO(austin): Can we combine these and just use the max?
-  GpuMemory<uint32_t> radix_sort_tmpstorage_device_;
   GpuMemory<uint8_t> temp_storage_compressed_union_marker_pair_device_;
   GpuMemory<uint8_t> temp_storage_bounds_reduce_by_key_device_;
   GpuMemory<uint8_t> temp_storage_dot_product_device_;
