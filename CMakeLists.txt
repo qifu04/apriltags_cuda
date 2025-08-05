@@ -208,7 +208,7 @@ target_link_libraries(gpu_detector_test
     glog::glog
     GTest::GTest)
 
-add_executable(testpic src/testpic.cpp)
+add_executable(testpic src/testpic.cu)
 target_link_libraries(testpic
     apriltag_cuda
     ${APRILTAG_INSTALL_DIR}/lib/libapriltag.so
@@ -218,6 +218,8 @@ target_link_libraries(testpic
     ${OPENCV_INSTALL_DIR}/lib/libopencv_videoio.so
     ${OPENCV_INSTALL_DIR}/lib/libopencv_imgcodecs.so
     glog::glog)
+target_include_directories(testpic PUBLIC /usr/local/cuda/include)
+
 
 #Add a custom target to format all source files
 add_custom_target(format_all

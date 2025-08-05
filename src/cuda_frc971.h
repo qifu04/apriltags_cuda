@@ -2,7 +2,6 @@
 #define FRC971_ORIN_CUDA_H_
 
 #include <chrono>
-#include <span>
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -73,34 +72,33 @@ private:
 template <typename T> class HostMemory {
 public:
   // Allocates a block of memory for holding up to size objects of type T.
-  HostMemory(size_t size) {
-    T *memory;
-    CHECK_CUDA(cudaMallocHost((void **)(&memory), size * sizeof(T)));
-    span_ = std::span<T>(memory, size);
+  HostMemory(size_t size) : size_(size) {
+    CHECK_CUDA(cudaMallocHost((void **)(&memory_), size * sizeof(T)));
   }
   HostMemory(const HostMemory &) = delete;
   HostMemory &operator=(const HostMemory &) = delete;
 
-  virtual ~HostMemory() { CHECK_CUDA(cudaFreeHost(span_.data())); }
+  virtual ~HostMemory() { CHECK_CUDA(cudaFreeHost(memory_)); }
 
   // Returns a pointer to the memory.
-  T *get() { return span_.data(); }
-  const T *get() const { return span_.data(); }
+  T *get() { return memory_; }
+  const T *get() const { return memory_; }
 
   // Returns the number of objects the memory can hold.
-  size_t size() const { return span_.size(); }
+  size_t size() const { return size_; }
 
   // Copies data from other (host memory) to this's memory.
   void MemcpyFrom(const T *other) {
-    memcpy(span_.data(), other, sizeof(T) * size());
+    memcpy(memory_, other, sizeof(T) * size());
   }
   // Copies data to other (host memory) from this's memory.
   void MemcpyTo(const T *other) {
-    memcpy(other, span_.data(), sizeof(T) * size());
+    memcpy(other, memory_, sizeof(T) * size());
   }
 
 private:
-  std::span<T> span_;
+  T *memory_;
+  const size_t size_;
 };
 
 // Class to manage the lifetime of device memory.

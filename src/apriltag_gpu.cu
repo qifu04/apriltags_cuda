@@ -633,6 +633,10 @@ struct SumPoints {
 };
 
 struct TransformLineFitPoint {
+  TransformLineFitPoint(const uint8_t *decimated_image_device,
+                        int decimated_width, int decimated_height)
+      : decimated_image_device_(decimated_image_device),
+        decimated_width(decimated_width), decimated_height(decimated_height) {}
   __host__ __device__ __forceinline__ LineFitPoint
   operator()(IndexPoint p) const {
     LineFitPoint result;
