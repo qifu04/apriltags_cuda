@@ -267,6 +267,17 @@ target_link_libraries(json_test
     Threads::Threads
     ZLIB::ZLIB)
 
+add_executable(testpic src/testpic.cpp)
+target_link_libraries(testpic
+    apriltag_cuda
+    ${APRILTAG_INSTALL_DIR}/lib/libapriltag.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_core.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgproc.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_highgui.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_videoio.so
+    ${OPENCV_INSTALL_DIR}/lib/libopencv_imgcodecs.so
+    glog::glog)
+
 # Add a custom target to format all source files
 add_custom_target(format_all
 	COMMAND clang-format -i -style=Google ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cu ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
