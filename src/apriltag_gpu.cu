@@ -399,12 +399,15 @@ public:
 // Calculates Theta for a given IndexPoint
 class AddThetaToIndexPoint {
 public:
-  AddThetaToIndexPoint(MinMaxExtents *extents_device, size_t num_extents)
-      : blob_finder_(extents_device, num_extents) {}
+  AddThetaToIndexPoint(MinMaxExtents *extents_device, size_t num_extents,
+                       size_t decimation)
+      : blob_finder_(extents_device, num_extents), decimation_(decimation) {}
   __host__ __device__ __forceinline__ IndexPoint operator()(IndexPoint a) {
     MinMaxExtents extents = blob_finder_.Get(a.blob_index());
-    float theta =
-        (atan2f(a.y() - extents.cy(), a.x() - extents.cx()) + M_PI) * 1e6;
+    float theta = (atan2f(a.y(decimation_) - extents.cy(),
+                          a.x(decimation_) - extents.cx()) +
+                   M_PI) *
+                  1e6;
     long long int theta_int = llrintf(theta);
 
     a.set_theta(std::max<long long int>(0, theta_int));
@@ -413,6 +416,7 @@ public:
 
 private:
   BlobExtentsIndexFinder blob_finder_;
+  size_t decimation_;
 };
 
 // TODO(austin): Make something which rewrites points on the way back out to
@@ -420,16 +424,17 @@ private:
 
 // Transforms aQuadBoundaryPoint into a single point extent for Reduce.
 struct TransformQuadBoundaryPointToMinMaxExtents {
+  size_t decimation;
   __host__ __device__ __forceinline__ MinMaxExtents
   operator()(cub::KeyValuePair<long, QuadBoundaryPoint> pt) const {
     MinMaxExtents result;
-    result.min_y = result.max_y = pt.value.y();
-    result.min_x = result.max_x = pt.value.x();
+    result.min_y = result.max_y = pt.value.y(decimation);
+    result.min_x = result.max_x = pt.value.x(decimation);
     result.starting_offset = pt.key;
     result.count = 1;
     result.pxgx_plus_pygy_sum =
-        static_cast<int64_t>(pt.value.x()) * pt.value.gx() +
-        static_cast<int64_t>(pt.value.y()) * pt.value.gy();
+        static_cast<int64_t>(pt.value.x(decimation)) * pt.value.gx() +
+        static_cast<int64_t>(pt.value.y(decimation)) * pt.value.gy();
     result.gx_sum = pt.value.gx();
     result.gy_sum = pt.value.gy();
     return result;
@@ -462,15 +467,15 @@ struct QuadBoundaryPointExtents {
 struct ComputeDotProductTransform {
   ComputeDotProductTransform(MinMaxExtents *extents_device, size_t num_extents,
                              size_t tag_width, size_t min_cluster_pixels,
-                             size_t max_cluster_pixels)
+                             size_t max_cluster_pixels, size_t decimation)
       : index_finder_(extents_device, num_extents), tag_width_(tag_width),
         min_cluster_pixels_(std::max<size_t>(24u, min_cluster_pixels)),
-        max_cluster_pixels_(max_cluster_pixels) {}
+        max_cluster_pixels_(max_cluster_pixels), decimation_(decimation) {}
 
   __host__ __device__ __forceinline__ float
   operator()(cub::KeyValuePair<long, QuadBoundaryPoint> a) const {
-    const size_t y = a.value.y();
-    const size_t x = a.value.x();
+    const size_t y = a.value.y(decimation_);
+    const size_t x = a.value.x(decimation_);
 
     // Binary search for the index.
     const size_t index = index_finder_.FindBlobIndex(a.key);
@@ -504,6 +509,7 @@ struct ComputeDotProductTransform {
   size_t tag_width_;
   size_t min_cluster_pixels_;
   size_t max_cluster_pixels_;
+  size_t decimation_;
 };
 
 class NonzeroBlobs {
@@ -640,10 +646,10 @@ struct TransformLineFitPoint {
     // we now undo our fixed-point arithmetic.
     // adjust for pixel center bias
     constexpr int delta = 1;
-    int32_t ix2 = p.x() + delta;
-    int32_t iy2 = p.y() + delta;
-    int32_t ix = ix2 / 2;
-    int32_t iy = iy2 / 2;
+    int32_t ix2 = p.x(decimation) + delta;
+    int32_t iy2 = p.y(decimation) + delta;
+    int32_t ix = ix2 / decimation;
+    int32_t iy = iy2 / decimation;
 
     int32_t W = 1;
 
@@ -673,6 +679,7 @@ struct TransformLineFitPoint {
   const uint8_t *decimated_image_device_;
   int decimated_width;
   int decimated_height;
+  int decimation;
 };
 
 struct SumLineFitPoints {
@@ -836,7 +843,7 @@ void GpuDetector::Detect(const uint8_t *image) {
     // blobs.
     cub::ArgIndexInputIterator<QuadBoundaryPoint *> value_index_input_iterator(
         sorted_union_marker_pair_device_.get());
-    TransformQuadBoundaryPointToMinMaxExtents min_max;
+    TransformQuadBoundaryPointToMinMaxExtents min_max{decimation_};
     cub::TransformInputIterator<MinMaxExtents,
                                 TransformQuadBoundaryPointToMinMaxExtents,
                                 cub::ArgIndexInputIterator<QuadBoundaryPoint *>>
@@ -921,7 +928,8 @@ void GpuDetector::Detect(const uint8_t *image) {
                                 cub::ArgIndexInputIterator<QuadBoundaryPoint *>>
         input_iterator(value_index_input_iterator, rewrite);
 
-    AddThetaToIndexPoint add_theta(extents_device_.get(), num_quads_host);
+    AddThetaToIndexPoint add_theta(extents_device_.get(), num_quads_host,
+                                   decimation_);
 
     TransformOutputIterator<IndexPoint, IndexPoint, AddThetaToIndexPoint>
         output_iterator(selected_blobs_device_.get(), add_theta);
@@ -969,7 +977,8 @@ void GpuDetector::Detect(const uint8_t *image) {
     // Clear the size of non-passing extents and the starting offset of all
     // extents.
     TransformLineFitPoint rewrite(decimated_image_device_.get(),
-                                  decimated_width, decimated_height);
+                                  decimated_width, decimated_height,
+                                  decimation_);
     cub::TransformInputIterator<LineFitPoint, TransformLineFitPoint,
                                 IndexPoint *>
         input_iterator(sorted_selected_blobs_device_.get(), rewrite);

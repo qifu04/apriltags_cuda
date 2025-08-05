@@ -2,6 +2,7 @@
 #define FRC971_ORIN_POINTS_H_
 
 #include <stdint.h>
+#include <stddef.h>
 
 #include <cub/iterator/transform_input_iterator.cuh>
 #include <cuda/std/tuple>
@@ -107,12 +108,13 @@ struct QuadBoundaryPoint {
     return 0;
   }
 
-  // Returns the un-decimated x and y positions.
-  __forceinline__ __host__ __device__ uint32_t x() const {
-    return static_cast<int32_t>(base_x() * 2) + dx();
+  // Returns the un-decimated x and y positions for the provided decimation
+  // factor.
+  __forceinline__ __host__ __device__ uint32_t x(size_t decimation) const {
+    return static_cast<int32_t>(base_x() * decimation) + dx();
   }
-  __forceinline__ __host__ __device__ uint32_t y() const {
-    return static_cast<int32_t>(base_y() * 2) + dy();
+  __forceinline__ __host__ __device__ uint32_t y(size_t decimation) const {
+    return static_cast<int32_t>(base_y() * decimation) + dy();
   }
 
   // Returns the gradient that this point represents, taking into account which
@@ -247,11 +249,11 @@ struct IndexPoint {
     return 0;
   }
 
-  __forceinline__ __host__ __device__ uint32_t x() const {
-    return static_cast<int32_t>(base_x() * 2) + dx();
+  __forceinline__ __host__ __device__ uint32_t x(size_t decimation) const {
+    return static_cast<int32_t>(base_x() * decimation) + dx();
   }
-  __forceinline__ __host__ __device__ uint32_t y() const {
-    return static_cast<int32_t>(base_y() * 2) + dy();
+  __forceinline__ __host__ __device__ uint32_t y(size_t decimation) const {
+    return static_cast<int32_t>(base_y() * decimation) + dy();
   }
 
   __forceinline__ __host__ __device__ int8_t gx() const {
