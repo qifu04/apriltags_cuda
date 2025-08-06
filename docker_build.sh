@@ -9,4 +9,4 @@ IMAGE_NAME=cuda-build
 docker image inspect "$IMAGE_NAME" > /dev/null 2>&1 || docker build -t "$IMAGE_NAME" .
 
 docker run --rm --memory=16g -v "$(pwd)":/workspace/apriltags_cuda -w /workspace/apriltags_cuda "$IMAGE_NAME" \
-  ./build.sh
+  ./build.sh 4
