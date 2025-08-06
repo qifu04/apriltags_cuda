@@ -723,6 +723,10 @@ void GpuDetector::Detect(const uint8_t *image) {
   // const aos::monotonic_clock::time_point start_time =
   //     aos::monotonic_clock::now();
   start_.Record(&stream_);
+  LOG(INFO) << "Memcpy color image to device src="
+            << static_cast<const void *>(image)
+            << " dst=" << static_cast<void *>(color_image_device_.get())
+            << " count=" << color_image_device_.size();
   color_image_device_.MemcpyAsyncFrom(image, &stream_);
   after_image_memcpy_to_device_.Record(&stream_);
 
@@ -733,11 +737,18 @@ void GpuDetector::Detect(const uint8_t *image) {
       minmax_image_device_.get(), thresholded_image_device_.get(), width_,
       height_, decimation_, tag_detector_->qtp.min_white_black_diff, &stream_);
   after_threshold_.Record(&stream_);
+  MaybeCheckAndSynchronize("CudaToGreyscaleAndDecimateHalide");
 
+  LOG(INFO) << "Memcpy gray image to host src="
+            << static_cast<void *>(gray_image_device_.get())
+            << " dst=" << static_cast<void *>(gray_image_host_.get())
+            << " count=" << gray_image_device_.size();
   gray_image_device_.MemcpyAsyncTo(&gray_image_host_, &stream_);
 
   after_memcpy_gray_.Record(&stream_);
 
+  LOG(INFO) << "Memset union_markers_size_device_ to 0 count="
+            << union_markers_size_device_.size();
   union_markers_size_device_.MemsetAsync(0u, &stream_);
   after_memset_.Record(&stream_);
 
@@ -745,14 +756,16 @@ void GpuDetector::Detect(const uint8_t *image) {
   LabelImage(ToGpuImage(thresholded_image_device_),
              ToGpuImage(union_markers_device_),
              ToGpuImage(union_markers_size_device_), stream_.get());
-
   after_unionfinding_.Record(&stream_);
+  MaybeCheckAndSynchronize("LabelImage");
 
   CHECK((width_ % 8) == 0);
   CHECK((height_ % 8) == 0);
 
-  size_t decimated_width = width_ / decimation_;
-  size_t decimated_height = height_ / decimation_;
+    size_t decimated_width = width_ / decimation_;
+    size_t decimated_height = height_ / decimation_;
+    LOG(INFO) << "Decimated dimensions: " << decimated_width << "x"
+              << decimated_height;
 
   // TODO(austin): Tune for the global shutter camera.
   // 1280 -> 2 * 128 * 5
@@ -762,10 +775,12 @@ void GpuDetector::Detect(const uint8_t *image) {
   {
     constexpr size_t kBlockWidth = 32;
     constexpr size_t kBlockHeight = 16;
-    dim3 threads(kBlockWidth, kBlockHeight, 1);
-    // Overlap 1 on each side in x, and 1 in y.
-    dim3 blocks((decimated_width + threads.x - 3) / (threads.x - 2),
-                (decimated_height + threads.y - 2) / (threads.y - 1), 1);
+      dim3 threads(kBlockWidth, kBlockHeight, 1);
+      // Overlap 1 on each side in x, and 1 in y.
+      dim3 blocks((decimated_width + threads.x - 3) / (threads.x - 2),
+                  (decimated_height + threads.y - 2) / (threads.y - 1), 1);
+      LOG(INFO) << "BlobDiff launch: threads=" << threads.x << "x" << threads.y
+                << " blocks=" << blocks.x << "x" << blocks.y;
 
     //  Make sure we fit in our mask.
     CHECK_LT(width_ * height_, static_cast<size_t>(1 << 26));
@@ -808,8 +823,8 @@ void GpuDetector::Detect(const uint8_t *image) {
              union_marker_pair_device_.size());
 
     // Now, sort just the keys to group like points.
-    VLOG(1) << "SortKeys (union markers): count="
-            << num_compressed_union_marker_pair_host;
+      LOG(INFO) << "SortKeys (union markers): count="
+                << num_compressed_union_marker_pair_host;
     size_t temp_storage_bytes = 0;
     QuadBoundaryPointDecomposer decomposer;
     CHECK_CUDA(cub::DeviceRadixSort::SortKeys(
@@ -818,11 +833,11 @@ void GpuDetector::Detect(const uint8_t *image) {
         num_compressed_union_marker_pair_host, decomposer,
         QuadBoundaryPoint::kRepEndBit, QuadBoundaryPoint::kBitsInKey,
         stream_.get()));
-    VLOG(1) << "  temp storage=" << temp_storage_bytes << " bytes"
-            << " in="
-            << static_cast<const void *>(compressed_union_marker_pair_device_.get())
-            << " out="
-            << static_cast<void *>(sorted_union_marker_pair_device_.get());
+      LOG(INFO) << "  temp storage=" << temp_storage_bytes << " bytes"
+                << " in="
+                << static_cast<const void *>(compressed_union_marker_pair_device_.get())
+                << " out="
+                << static_cast<void *>(sorted_union_marker_pair_device_.get());
     GpuMemory<uint8_t> radix_sort_tmpstorage_device(temp_storage_bytes);
     CHECK_CUDA(cub::DeviceRadixSort::SortKeys(
         radix_sort_tmpstorage_device.get(), temp_storage_bytes,
@@ -831,7 +846,7 @@ void GpuDetector::Detect(const uint8_t *image) {
         num_compressed_union_marker_pair_host, decomposer,
         QuadBoundaryPoint::kRepEndBit, QuadBoundaryPoint::kBitsInKey,
         stream_.get()));
-    VLOG(1) << "SortKeys (union markers) completed";
+      LOG(INFO) << "SortKeys (union markers) completed";
 
     MaybeCheckAndSynchronize("cub::DeviceRadixSort::SortKeys");
   }
@@ -955,7 +970,7 @@ void GpuDetector::Detect(const uint8_t *image) {
 
   {
     // Sort based on the angle.
-    VLOG(1) << "SortKeys (selected blobs): count=" << num_selected_blobs_host;
+      LOG(INFO) << "SortKeys (selected blobs): count=" << num_selected_blobs_host;
     size_t temp_storage_bytes = 0;
     QuadIndexPointDecomposer decomposer;
 
@@ -964,18 +979,18 @@ void GpuDetector::Detect(const uint8_t *image) {
         sorted_selected_blobs_device_.get(), num_selected_blobs_host,
         decomposer, IndexPoint::kRepEndBit, IndexPoint::kBitsInKey,
         stream_.get()));
-    VLOG(1) << "  temp storage=" << temp_storage_bytes << " bytes"
-            << " in="
-            << static_cast<const void *>(selected_blobs_device_.get())
-            << " out="
-            << static_cast<void *>(sorted_selected_blobs_device_.get());
+      LOG(INFO) << "  temp storage=" << temp_storage_bytes << " bytes"
+                << " in="
+                << static_cast<const void *>(selected_blobs_device_.get())
+                << " out="
+                << static_cast<void *>(sorted_selected_blobs_device_.get());
     GpuMemory<uint8_t> radix_sort_tmpstorage_device(temp_storage_bytes);
     CHECK_CUDA(cub::DeviceRadixSort::SortKeys(
         radix_sort_tmpstorage_device.get(), temp_storage_bytes,
         selected_blobs_device_.get(), sorted_selected_blobs_device_.get(),
         num_selected_blobs_host, decomposer, IndexPoint::kRepEndBit,
         IndexPoint::kBitsInKey, stream_.get()));
-    VLOG(1) << "SortKeys (selected blobs) completed";
+      LOG(INFO) << "SortKeys (selected blobs) completed";
 
     MaybeCheckAndSynchronize("cub::DeviceRadixSort::SortKeys");
   }
@@ -1046,7 +1061,7 @@ void GpuDetector::Detect(const uint8_t *image) {
 
   {
     // Sort based on the angle.
-    VLOG(1) << "SortKeys (peaks): count=" << num_compressed_peaks_host;
+      LOG(INFO) << "SortKeys (peaks): count=" << num_compressed_peaks_host;
     size_t temp_storage_bytes = 0;
     PeakDecomposer decomposer;
 
@@ -1054,17 +1069,18 @@ void GpuDetector::Detect(const uint8_t *image) {
         nullptr, temp_storage_bytes, compressed_peaks_device_.get(),
         sorted_compressed_peaks_device_.get(), num_compressed_peaks_host,
         decomposer, 0, PeakDecomposer::kBitsInKey, stream_.get()));
-    VLOG(1) << "  temp storage=" << temp_storage_bytes << " bytes"
-            << " in=" << static_cast<const void *>(compressed_peaks_device_.get())
-            << " out="
-            << static_cast<void *>(sorted_compressed_peaks_device_.get());
+      LOG(INFO) << "  temp storage=" << temp_storage_bytes << " bytes"
+                << " in="
+                << static_cast<const void *>(compressed_peaks_device_.get())
+                << " out="
+                << static_cast<void *>(sorted_compressed_peaks_device_.get());
     GpuMemory<uint8_t> radix_sort_tmpstorage_device(temp_storage_bytes);
     CHECK_CUDA(cub::DeviceRadixSort::SortKeys(
         radix_sort_tmpstorage_device.get(), temp_storage_bytes,
         compressed_peaks_device_.get(), sorted_compressed_peaks_device_.get(),
         num_compressed_peaks_host, decomposer, 0, PeakDecomposer::kBitsInKey,
         stream_.get()));
-    VLOG(1) << "SortKeys (peaks) completed";
+      LOG(INFO) << "SortKeys (peaks) completed";
 
     MaybeCheckAndSynchronize("cub::DeviceRadixSort::SortKeys");
   }
@@ -1146,11 +1162,13 @@ void GpuDetector::Detect(const uint8_t *image) {
 
   // Report out how long things took.
 
-  VLOG(1) << "Found " << num_compressed_union_marker_pair_host << " items";
-  VLOG(1) << "Selected " << num_selected_blobs_host << " right side out points";
-  VLOG(1) << "Found compressed runs: " << num_quads_host;
-  VLOG(1) << "Peaks " << num_compressed_peaks_host << " peaks";
-  VLOG(1) << "Peak Selected blobs " << num_quad_peaked_quads_host << " quads";
+    LOG(INFO) << "Found " << num_compressed_union_marker_pair_host << " items";
+    LOG(INFO) << "Selected " << num_selected_blobs_host
+              << " right side out points";
+    LOG(INFO) << "Found compressed runs: " << num_quads_host;
+    LOG(INFO) << "Peaks " << num_compressed_peaks_host << " peaks";
+    LOG(INFO) << "Peak Selected blobs " << num_quad_peaked_quads_host
+              << " quads";
   CudaEvent *previous_event = &start_;
   for (auto name_event : std::vector<std::tuple<std::string_view, CudaEvent &>>{
            {"Memcpy", after_image_memcpy_to_device_},
@@ -1175,10 +1193,10 @@ void GpuDetector::Detect(const uint8_t *image) {
            {"FitQuads", after_quad_fit_},
        }) {
     std::get<1>(name_event).Synchronize();
-    VLOG(1) << "    " << std::get<0>(name_event) << " "
-            << float_milli(std::get<1>(name_event).ElapsedTime(*previous_event))
-                   .count()
-            << "ms";
+      LOG(INFO) << "    " << std::get<0>(name_event) << " "
+                << float_milli(std::get<1>(name_event).ElapsedTime(*previous_event))
+                       .count()
+                << "ms";
     previous_event = &std::get<1>(name_event);
   }
   // VLOG(1) << "  FitQuads " << float_milli(end_time -
@@ -1193,9 +1211,9 @@ void GpuDetector::Detect(const uint8_t *image) {
   if (!first_) {
     ++execution_count_;
     execution_duration_ += previous_event->ElapsedTime(start_);
-    VLOG(1) << "Average overall "
-            << float_milli(execution_duration_ / execution_count_).count()
-            << "ms";
+      LOG(INFO) << "Average overall "
+                << float_milli(execution_duration_ / execution_count_).count()
+                << "ms";
   }
 
   first_ = false;

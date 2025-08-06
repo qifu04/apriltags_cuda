@@ -124,6 +124,9 @@ public:
   // Copies data from host memory to this memory asynchronously on the provided
   // stream.
   void MemcpyAsyncFrom(const T *host_memory, CudaStream *stream) {
+    LOG(INFO) << "MemcpyAsyncFrom host=" << static_cast<const void *>(host_memory)
+              << " device=" << static_cast<void *>(memory_)
+              << " count=" << size_;
     CHECK_CUDA(cudaMemcpyAsync(memory_, host_memory, sizeof(T) * size_,
                                cudaMemcpyHostToDevice, stream->get()));
   }
@@ -134,6 +137,9 @@ public:
   // Copies data to host memory from this memory asynchronously on the provided
   // stream.
   void MemcpyAsyncTo(T *host_memory, size_t size, CudaStream *stream) const {
+    LOG(INFO) << "MemcpyAsyncTo host=" << static_cast<void *>(host_memory)
+              << " device=" << static_cast<void *>(memory_)
+              << " count=" << size;
     CHECK_CUDA(cudaMemcpyAsync(reinterpret_cast<void *>(host_memory),
                                reinterpret_cast<void *>(memory_),
                                sizeof(T) * size, cudaMemcpyDeviceToHost,
@@ -148,6 +154,9 @@ public:
 
   // Copies data from host_memory to this memory blocking.
   void MemcpyFrom(const T *host_memory) {
+    LOG(INFO) << "MemcpyFrom host=" << static_cast<const void *>(host_memory)
+              << " device=" << static_cast<void *>(memory_)
+              << " count=" << size_;
     CHECK_CUDA(cudaMemcpy(reinterpret_cast<void *>(memory_),
                           reinterpret_cast<const void *>(host_memory),
                           sizeof(T) * size_, cudaMemcpyHostToDevice));
@@ -158,6 +167,9 @@ public:
 
   // Copies data to host_memory from this memory.  Only copies size objects.
   void MemcpyTo(T *host_memory, size_t size) const {
+    LOG(INFO) << "MemcpyTo host=" << static_cast<void *>(host_memory)
+              << " device=" << static_cast<void *>(memory_)
+              << " count=" << size;
     CHECK_CUDA(cudaMemcpy(reinterpret_cast<void *>(host_memory), memory_,
                           sizeof(T) * size, cudaMemcpyDeviceToHost));
   }
@@ -170,6 +182,9 @@ public:
   // Sets the memory asynchronously to contain data of type 'val' on the provide
   // stream.
   void MemsetAsync(const uint8_t val, CudaStream *stream) const {
+    LOG(INFO) << "MemsetAsync device=" << static_cast<void *>(memory_)
+              << " value=" << static_cast<int>(val)
+              << " count=" << size_;
     CHECK_CUDA(cudaMemsetAsync(memory_, val, sizeof(T) * size_, stream->get()));
   }
 
